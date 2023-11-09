@@ -19,6 +19,8 @@ type GameState = (Player, [Move], [Box]) --whose turn it is, list of moves done,
 
 data Winner = Winner Player | Draw deriving (Eq, Show)
 
+-- initial gamestate
+initGame = (PlayerOne, [], [])
 --starting out 5x4 boxes
 rows = 4
 columns = 5

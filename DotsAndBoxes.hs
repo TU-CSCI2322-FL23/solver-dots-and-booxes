@@ -65,7 +65,7 @@ checkBoxUp :: GameState -> Move -> Maybe Box
 checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs 
                                                    && Move ((x, y-1), Down) `elem` mvs 
                                                    && Move ((x+1, y-1), Down) `elem` mvs 
-                                                   then Just (Box (x, y+1) trn)
+                                                   then Just (Box (x, y-1) trn)
                                                    else Nothing
 -- checks if lower box was made with right line
 checkBoxDown :: GameState -> Move -> Maybe Box
@@ -96,7 +96,7 @@ makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (
                                                      downBox = checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      newBoxes = catMaybes [upBox, downBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in (next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
+                                                 in (if not (null newBoxes) then trn else next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
                                                  else error "Move invalid!"
 
 makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Down)) then 
@@ -104,7 +104,7 @@ makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (
                                                      rightBox = checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down))
                                                      newBoxes = catMaybes [leftBox, rightBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in (next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
+                                                 in (if not (null newBoxes) then trn else next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
                                                     else error "Move invalid!"
  
 

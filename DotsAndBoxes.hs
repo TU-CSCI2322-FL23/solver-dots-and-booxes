@@ -1,8 +1,8 @@
 import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
-import Data.List ()
+import Data.List (intercalate)
 import Data.List.Split ()
-import Data.Maybe ( catMaybes )
+import Data.Maybe ( catMaybes, isJust )
 import Debug.Trace ()
 import Text.XHtml (base)
 
@@ -121,3 +121,23 @@ calculateScore (_, _, []) (p1score, p2score)
 calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = if player == PlayerOne 
                                                                    then calculateScore (trn, mvs, bxs) (p1score+1, p2score) 
                                                                    else calculateScore (trn, mvs, bxs) (p1score, p2score+1)
+
+--return horizontal line
+printHorizontalLine :: GameState -> Int -> String
+printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x,(y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
+
+--return Vertical line
+printVerticalLine :: GameState -> Int -> String
+printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else "2" 
+                                      in concat [ if Move ((x,(y `div` 2)), Down) `elem` mvs 
+                                                  then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1" 
+                                                       else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
+                                                       else "| " 
+                                                  else "  " | x <- [0..columns]]
+
+
+--return the game board
+printGameBoard :: GameState -> String
+--printGameBoard (trn, mvs, bxs) ((rows*2)+1) = if trn == PlayerOne then " Player One's Turn" else " Player Two's Turn"
+printGameBoard (trn,mvs,bxs) = intercalate "\n" (show trn : [ if even y then printHorizontalLine (trn, mvs, bxs) y 
+                                                              else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]])

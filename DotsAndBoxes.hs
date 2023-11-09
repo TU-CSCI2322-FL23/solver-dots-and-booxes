@@ -60,14 +60,14 @@ checkLegal game move = move `elem` findLegalMoves game
 
 -- checks if upper box was made with right line
 checkBoxUp :: GameState -> Move -> Maybe Box
-checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y+1), Rght) `elem` mvs 
-                                                   && Move ((x, y+1), Down) `elem` mvs 
-                                                   && Move ((x+1, y+1), Down) `elem` mvs 
+checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs 
+                                                   && Move ((x, y-1), Down) `elem` mvs 
+                                                   && Move ((x+1, y-1), Down) `elem` mvs 
                                                    then Just (Box (x, y+1) trn)
                                                    else Nothing
 -- checks if lower box was made with right line
 checkBoxDown :: GameState -> Move -> Maybe Box
-checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs 
+checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y+1), Rght) `elem` mvs 
                                                      && Move ((x, y), Down) `elem` mvs 
                                                      && Move ((x+1, y), Down) `elem` mvs 
                                                      then Just (Box (x, y) trn)
@@ -76,14 +76,14 @@ checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `e
 checkBoxLeft :: GameState -> Move -> Maybe Box
 checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x-1, y), Rght) `elem` mvs 
                                                      && Move ((x-1, y), Down) `elem` mvs 
-                                                     && Move ((x-1, y-1), Rght) `elem` mvs 
+                                                     && Move ((x-1, y+1), Rght) `elem` mvs 
                                                      then Just (Box (x-1, y) trn)
                                                      else Nothing
 -- checks if right box was made with down line
 checkBoxRight :: GameState -> Move -> Maybe Box
 checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x, y), Rght) `elem` mvs 
                                                       && Move ((x+1, y), Down) `elem` mvs 
-                                                      && Move ((x, y-1), Rght) `elem` mvs 
+                                                      && Move ((x, y+1), Rght) `elem` mvs 
                                                       then Just (Box (x, y) trn)
                                                       else Nothing
 
@@ -95,15 +95,15 @@ makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (
                                                      newBoxes = catMaybes [upBox, downBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
                                                  in (next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
-                                                 else (trn, mvs, bxs)
+                                                 else error "Move invalid!"
 
-makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Rght)) then 
+makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Down)) then 
                                                  let leftBox = checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down))
                                                      rightBox = checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down))
                                                      newBoxes = catMaybes [leftBox, rightBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
                                                  in (next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
-                                                    else (trn, mvs, bxs)
+                                                    else error "Move invalid!"
  
 
 -- checks if there is a winner and returns winner if so

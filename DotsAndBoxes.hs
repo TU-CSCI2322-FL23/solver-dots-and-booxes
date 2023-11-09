@@ -137,7 +137,11 @@ printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else 
 
 
 --return the game board
-printGameBoard :: GameState -> String
+printGameBoard :: GameState -> [String]
 --printGameBoard (trn, mvs, bxs) ((rows*2)+1) = if trn == PlayerOne then " Player One's Turn" else " Player Two's Turn"
-printGameBoard (trn,mvs,bxs) = intercalate "\n" (show trn : [ if even y then printHorizontalLine (trn, mvs, bxs) y 
-                                                              else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]])
+printGameBoard (trn,mvs,bxs) = ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y 
+                                                              else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
+
+prettyShow :: GameState -> IO ()
+prettyShow game = let lns = printGameBoard game
+                  in mapM_ putStrLn lns

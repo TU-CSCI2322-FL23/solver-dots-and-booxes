@@ -1,8 +1,8 @@
 import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
-import Data.List ()
+import Data.List (intercalate)
 import Data.List.Split ()
-import Data.Maybe ( catMaybes )
+import Data.Maybe ( catMaybes, isJust )
 import Debug.Trace ()
 import Text.XHtml (base)
 
@@ -19,6 +19,8 @@ type GameState = (Player, [Move], [Box]) --whose turn it is, list of moves done,
 
 data Winner = Winner Player | Draw deriving (Eq, Show)
 
+-- initial gamestate
+initGame = (PlayerOne, [], [])
 --starting out 5x4 boxes
 rows = 4
 columns = 5
@@ -60,14 +62,14 @@ checkLegal game move = move `elem` findLegalMoves game
 
 -- checks if upper box was made with right line
 checkBoxUp :: GameState -> Move -> Maybe Box
-checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y+1), Rght) `elem` mvs 
-                                                   && Move ((x, y+1), Down) `elem` mvs 
-                                                   && Move ((x+1, y+1), Down) `elem` mvs 
+checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs 
+                                                   && Move ((x, y-1), Down) `elem` mvs 
+                                                   && Move ((x+1, y-1), Down) `elem` mvs 
                                                    then Just (Box (x, y+1) trn)
                                                    else Nothing
 -- checks if lower box was made with right line
 checkBoxDown :: GameState -> Move -> Maybe Box
-checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs 
+checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y+1), Rght) `elem` mvs 
                                                      && Move ((x, y), Down) `elem` mvs 
                                                      && Move ((x+1, y), Down) `elem` mvs 
                                                      then Just (Box (x, y) trn)
@@ -76,14 +78,14 @@ checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `e
 checkBoxLeft :: GameState -> Move -> Maybe Box
 checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x-1, y), Rght) `elem` mvs 
                                                      && Move ((x-1, y), Down) `elem` mvs 
-                                                     && Move ((x-1, y-1), Rght) `elem` mvs 
+                                                     && Move ((x-1, y+1), Rght) `elem` mvs 
                                                      then Just (Box (x-1, y) trn)
                                                      else Nothing
 -- checks if right box was made with down line
 checkBoxRight :: GameState -> Move -> Maybe Box
 checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x, y), Rght) `elem` mvs 
                                                       && Move ((x+1, y), Down) `elem` mvs 
-                                                      && Move ((x, y-1), Rght) `elem` mvs 
+                                                      && Move ((x, y+1), Rght) `elem` mvs 
                                                       then Just (Box (x, y) trn)
                                                       else Nothing
 
@@ -94,16 +96,16 @@ makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (
                                                      downBox = checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      newBoxes = catMaybes [upBox, downBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in (next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
-                                                 else (trn, mvs, bxs)
+                                                 in (if not (null newBoxes) then trn else next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
+                                                 else error "Move invalid!"
 
-makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Rght)) then 
+makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Down)) then 
                                                  let leftBox = checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down))
                                                      rightBox = checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down))
                                                      newBoxes = catMaybes [leftBox, rightBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in (next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
-                                                    else (trn, mvs, bxs)
+                                                 in (if not (null newBoxes) then trn else next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
+                                                    else error "Move invalid!"
  
 
 -- checks if there is a winner and returns winner if so
@@ -122,20 +124,26 @@ calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = if player == 
                                                                    then calculateScore (trn, mvs, bxs) (p1score+1, p2score) 
                                                                    else calculateScore (trn, mvs, bxs) (p1score, p2score+1)
 
-
-
 --return horizontal line
 printHorizontalLine :: GameState -> Int -> String
-printHorizontalLine (trn, mvs, bxs) y = [ if (Move ((x,y), Rght)) `elem` mvs then '-' else '.' | x <- [0..columns]]
+printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x,(y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
 
 --return Vertical line
 printVerticalLine :: GameState -> Int -> String
-printVerticalLine (trn, mvs, bxs) y = [ if (Move ((x,y), Down)) `elem` mvs then '|' else '.' | x <- [0..columns]]
+printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else "2" 
+                                      in concat [ if Move ((x,(y `div` 2)), Down) `elem` mvs 
+                                                  then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1" 
+                                                       else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
+                                                       else "| " 
+                                                  else "  " | x <- [0..columns]]
 
 
 --return the game board
-printGameBoard :: GameState -> Int -> String
+printGameBoard :: GameState -> [String]
 --printGameBoard (trn, mvs, bxs) ((rows*2)+1) = if trn == PlayerOne then " Player One's Turn" else " Player Two's Turn"
-printGameBoard (trn,mvs,bxs) x = do 
-                        if even x then printHorizontalLine (trn, mvs, bxs) x else printVerticalLine (trn, mvs, bxs) x
-                        if (rows*2)+1 == x then if trn == PlayerOne then " Player One's Turn" else " Player Two's Turn" else printGameBoard (trn, mvs, bxs) (x+1)
+printGameBoard (trn,mvs,bxs) = ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y 
+                                                              else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
+
+prettyShow :: GameState -> IO ()
+prettyShow game = let lns = printGameBoard game
+                  in mapM_ putStrLn lns

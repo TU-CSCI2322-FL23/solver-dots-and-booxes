@@ -65,7 +65,7 @@ checkBoxUp :: GameState -> Move -> Maybe Box
 checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs 
                                                    && Move ((x, y-1), Down) `elem` mvs 
                                                    && Move ((x+1, y-1), Down) `elem` mvs 
-                                                   then Just (Box (x, y+1) trn)
+                                                   then Just (Box (x, y-1) trn)
                                                    else Nothing
 -- checks if lower box was made with right line
 checkBoxDown :: GameState -> Move -> Maybe Box

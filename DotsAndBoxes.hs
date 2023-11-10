@@ -1,3 +1,4 @@
+module DotsAndBoxes where
 import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
 import Data.List (intercalate)
@@ -26,25 +27,7 @@ rows = 4
 columns = 5
 numBoxes = rows * columns
 
--- read in data
-    -- parse it to our data types
 
--- check to see if move is legal                DONE
-    -- check if move has been done before       DONE
-    -- check if move goes out of bounds         DONE
-
--- make move
-    -- add to list of moves                     DONE
-    -- check if box is filled                   DONE
-        -- add to list of boxes                 DONE
-
--- check if game is done                        DONE
-    --compute points from list of boxes         DONE
-
--- output
-    --print each game state
-    --print out winner
-    --stop reading in stuff
 
 -- creates a list of all possible moves for an m x n board
 createAllMoves :: Int -> Int -> [Move]
@@ -124,6 +107,7 @@ calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = if player == 
                                                                    then calculateScore (trn, mvs, bxs) (p1score+1, p2score) 
                                                                    else calculateScore (trn, mvs, bxs) (p1score, p2score+1)
 
+
 --return horizontal line
 printHorizontalLine :: GameState -> Int -> String
 printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x,(y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
@@ -144,6 +128,6 @@ printGameBoard :: GameState -> [String]
 printGameBoard (trn,mvs,bxs) = ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y 
                                                               else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
 
-prettyShow :: GameState -> IO ()
-prettyShow game = let lns = printGameBoard game
+showGame :: GameState -> IO ()
+showGame game = let lns = printGameBoard game
                   in mapM_ putStrLn lns

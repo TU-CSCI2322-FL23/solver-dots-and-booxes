@@ -137,11 +137,6 @@ showGame game = let lns = printGameBoard game
 turn_swap :: Player -> Player
 turn_swap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
 
-aux :: [Winner] -> Player-> Bool -> Winner
-aux [] trn drawn = if drawn then Draw else Winner (turn_swap trn)
-aux (Winner x:xs) trn drawn = if trn == x then Winner x else aux xs trn drawn
-aux (Draw:xs) trn drawn = aux xs trn True
-
 whoWillwin :: GameState -> Winner
 whoWillwin gs@(trn, mvs, bxs) =
   let pmvs = findLegalMoves gs

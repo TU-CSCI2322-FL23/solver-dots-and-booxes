@@ -21,11 +21,11 @@ type GameState = (Player, [Move], [Box]) --whose turn it is, list of moves done,
 data Winner = Winner Player | Draw deriving (Eq, Show)
 
 -- initial gamestate
-initGame = (PlayerOne, [], [])
+initGame = (PlayerOne, [], []) :: GameState
 --starting out 5x4 boxes
-rows = 4
-columns = 5
-numBoxes = rows * columns
+rows = 4 :: Int
+columns = 5 :: Int
+numBoxes = rows * columns :: Int
 
 
 
@@ -73,22 +73,22 @@ checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x, y), Rght) `el
                                                       else Nothing
 
 -- updates gamestate with move
-makeMove :: GameState -> Move -> GameState
+makeMove :: GameState -> Move -> Maybe GameState
 makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Rght)) then 
                                                  let upBox = checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      downBox = checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      newBoxes = catMaybes [upBox, downBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in (if not (null newBoxes) then trn else next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
-                                                 else error "Move invalid!"
+                                                 in Just (if not (null newBoxes) then trn else next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
+                                                 else Nothing
 
 makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Down)) then 
                                                  let leftBox = checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down))
                                                      rightBox = checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down))
                                                      newBoxes = catMaybes [leftBox, rightBox]
                                                      next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in (if not (null newBoxes) then trn else next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
-                                                    else error "Move invalid!"
+                                                 in Just (if not (null newBoxes) then trn else next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
+                                                    else Nothing
  
 
 -- checks if there is a winner and returns winner if so
@@ -110,12 +110,12 @@ calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = if player == 
 
 --return horizontal line
 printHorizontalLine :: GameState -> Int -> String
-printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x,(y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
+printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x, (y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
 
 --return Vertical line
 printVerticalLine :: GameState -> Int -> String
 printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else "2" 
-                                      in concat [ if Move ((x,(y `div` 2)), Down) `elem` mvs 
+                                      in concat [ if Move ((x, (y `div` 2)), Down) `elem` mvs 
                                                   then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1" 
                                                        else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
                                                        else "| " 
@@ -128,6 +128,6 @@ printGameBoard :: GameState -> [String]
 printGameBoard (trn,mvs,bxs) = ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y 
                                                               else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
 
-showGame :: GameState -> IO ()
-showGame game = let lns = printGameBoard game
+prettyShow :: GameState -> IO ()
+prettyShow game = let lns = printGameBoard game
                   in mapM_ putStrLn lns

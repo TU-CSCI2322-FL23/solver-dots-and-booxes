@@ -2,10 +2,11 @@ import DotsAndBoxes
 import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
 import Data.List (intercalate)
-import Data.List.Split ()
+import Data.List.Split (splitOn)
 import Data.Maybe ( catMaybes, isJust )
 import Debug.Trace ()
 import Text.XHtml (base)
+import Data.Char (ord)
 
 {-
     Story 1 DONE
@@ -22,5 +23,34 @@ import Text.XHtml (base)
 
 
 main :: IO ()
-main = do
-    
+main = undefined
+
+-- turns move string into move, i.e. "33R" -> Move ((3, 3), Rght)
+stringToMove :: String -> Move
+stringToMove (xstr:ystr:dstr) = let x = read [xstr] :: Int
+                                    y = read [ystr] :: Int
+                                    dir = case dstr of
+                                          "D" -> Down
+                                          "R" -> Rght
+                                in Move ((x, y), dir)
+stringToMove _ = error "Invalid Move String!"
+
+-- turns game string into gamestate, i.e. "00R,22D" -> (PlayerOne, [Move ((2,2),Down),Move ((0,0),Rght)], [])
+readGame :: String -> GameState
+readGame str = let moves = map stringToMove $ splitOn "," str
+                   aux game [] = game
+                   aux game (mv:mvs) = aux (makeMove game mv) mvs
+               in aux initGame moves
+
+-- turns move into move string, i.e. Move ((3, 3), Rght) -> "33R"
+moveToString :: Move -> String
+moveToString (Move ((x, y), dir)) = let xstr = show x
+                                        ystr = show y
+                                        dstr = case dir of
+                                               Down -> "D"
+                                               Rght -> "R"
+                                    in xstr ++ ystr ++ dstr
+
+-- turns gamestate into game string, i.e. (PlayerOne, [Move ((2,2),Down),Move ((0,0),Rght)], []) -> "00R,22D"
+showGame :: GameState -> String 
+showGame (trn, mvs, bxs) = intercalate "," $ map moveToString $ reverse mvs

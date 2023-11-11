@@ -3,7 +3,7 @@ import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
 import Data.List (intercalate)
 import Data.List.Split (splitOn)
-import Data.Maybe ( catMaybes, isJust )
+import Data.Maybe ( catMaybes, isJust, fromMaybe, fromJust )
 import Debug.Trace ()
 import Text.XHtml (base)
 import Data.Char (ord)
@@ -25,22 +25,30 @@ import Data.Char (ord)
 main :: IO ()
 main = undefined
 
--- turns move string into move, i.e. "33R" -> Move ((3, 3), Rght)
-stringToMove :: String -> Move
+-- turns move string into maybe move, i.e. "33R" -> Move ((3, 3), Rght)
+stringToMove :: String -> Maybe Move
 stringToMove (xstr:ystr:dstr) = let x = read [xstr] :: Int
                                     y = read [ystr] :: Int
                                     dir = case dstr of
                                           "D" -> Down
                                           "R" -> Rght
-                                in Move ((x, y), dir)
-stringToMove _ = error "Invalid Move String!"
+                                in Just $ Move ((x, y), dir)
+stringToMove _ = Nothing
 
--- turns game string into gamestate, i.e. "00R,22D" -> (PlayerOne, [Move ((2,2),Down),Move ((0,0),Rght)], [])
-readGame :: String -> GameState
-readGame str = let moves = map stringToMove $ splitOn "," str
-                   aux game [] = game
-                   aux game (mv:mvs) = aux (makeMove game mv) mvs
-               in aux initGame moves
+-- plays moves on a gamestate and returns maybe gamestate if moves are valid
+playMoves :: GameState -> [Move] -> Maybe GameState
+playMoves game [] = Just game
+playMoves game (mv:mvs) = let newGame = makeMove game mv
+                          in case newGame of
+                             Nothing -> Nothing
+                             _ -> playMoves (fromJust newGame) mvs
+
+-- turns game string into maybe gamestate, i.e. "00R,22D" -> (PlayerOne, [Move ((2,2),Down),Move ((0,0),Rght)], [])
+readGame :: String -> Maybe GameState
+readGame str = let moves = mapM stringToMove (splitOn "," str)              
+               in case moves of
+                  Nothing -> Nothing
+                  _ -> playMoves initGame (fromJust moves)
 
 -- turns move into move string, i.e. Move ((3, 3), Rght) -> "33R"
 moveToString :: Move -> String

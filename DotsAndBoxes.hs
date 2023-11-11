@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 module DotsAndBoxes where
 import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
@@ -7,7 +9,7 @@ import Data.Maybe ( catMaybes, isJust )
 import Debug.Trace ()
 import Text.XHtml (base)
 
-data Player = PlayerOne | PlayerTwo | Draw deriving (Eq, Show)
+data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
 
 type Point = (Int, Int)
 data Direction = Rght | Down deriving (Eq, Show)
@@ -18,7 +20,7 @@ data Box = Box Point Player deriving (Eq, Show) -- top left point of box and who
 
 type GameState = (Player, [Move], [Box]) --whose turn it is, list of moves done, list of boxes completed
 
-type Winner = Player
+data Winner = Winner Player | Draw deriving (Eq, Show)
 
 -- initial gamestate
 initGame = (PlayerOne, [], [])
@@ -132,15 +134,20 @@ showGame :: GameState -> IO ()
 showGame game = let lns = printGameBoard game
                   in mapM_ putStrLn lns
 
-turn :: Player -> Player
-turn trn = if trn == PlayerOne then PlayerTwo else PlayerOne
+turn_swap :: Player -> Player
+turn_swap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
+
+aux :: [Winner] -> Player-> Bool -> Winner
+aux [] trn drawn = if drawn then Draw else Winner (turn_swap trn)
+aux (Winner x:xs) trn drawn = if trn == x then Winner x else aux xs trn drawn
+aux (Draw:xs) trn drawn = aux xs trn True
 
 whoWillwin :: GameState -> Winner
 whoWillwin gs@(trn, mvs, bxs) =
   let pmvs = findLegalMoves gs
       games = map (whoWillwin . makeMove gs) pmvs
-      aux
-        |trn `elem` games = trn
-        |Draw `elem` games = Draw
-        |otherwise = turn trn
-  in if isJust (checkWinner gs) then head $ catMaybes [checkWinner gs] else aux
+      aux :: [Winner] -> Bool -> Winner
+      aux [] drawn = if drawn then Draw else Winner (turn_swap trn)
+      aux (Winner x:xs) drawn = if trn == x then Winner x else aux xs drawn
+      aux (Draw:xs) drawn = aux xs  True
+  in if isJust (checkWinner gs) then head $ catMaybes [checkWinner gs] else aux games False

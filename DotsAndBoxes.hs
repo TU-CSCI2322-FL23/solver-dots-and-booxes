@@ -140,9 +140,11 @@ turn_swap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
 whoWillwin :: GameState -> Winner
 whoWillwin gs@(trn, mvs, bxs) =
   let pmvs = findLegalMoves gs
-      games = map (whoWillwin . makeMove gs) pmvs
-      aux :: [Winner] -> Bool -> Winner
+      aux :: [Move] -> Bool -> Winner
       aux [] drawn = if drawn then Draw else Winner (turn_swap trn)
-      aux (Winner x:xs) drawn = if trn == x then Winner x else aux xs drawn
-      aux (Draw:xs) drawn = aux xs  True
-  in if isJust (checkWinner gs) then head $ catMaybes [checkWinner gs] else aux games False
+      aux (x:xs) drawn  
+        |Winner trn == result = result 
+        |Draw == result = aux xs True
+        |otherwise = aux xs drawn
+        where result = (whoWillwin . makeMove gs) x
+  in if isJust (checkWinner gs) then head $ catMaybes [checkWinner gs] else aux pmvs False

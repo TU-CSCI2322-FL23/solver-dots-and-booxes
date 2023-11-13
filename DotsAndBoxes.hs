@@ -80,7 +80,7 @@ makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (
                                                  let upBox = checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      downBox = checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      newBoxes = catMaybes [upBox, downBox]
-                                                     next = if trn == PlayerOne then PlayerTwo else PlayerOne
+                                                     next = turn_swap trn
                                                  in (if not (null newBoxes) then trn else next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
                                                  else error "Move invalid!"
 
@@ -88,7 +88,7 @@ makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (
                                                  let leftBox = checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down))
                                                      rightBox = checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down))
                                                      newBoxes = catMaybes [leftBox, rightBox]
-                                                     next = if trn == PlayerOne then PlayerTwo else PlayerOne
+                                                     next = turn_swap trn
                                                  in (if not (null newBoxes) then trn else next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
                                                     else error "Move invalid!"
 

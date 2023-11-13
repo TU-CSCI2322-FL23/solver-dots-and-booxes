@@ -147,4 +147,6 @@ whoWillwin gs@(trn, mvs, bxs) =
         |Draw == result = aux xs True
         |otherwise = aux xs drawn
         where result = (whoWillwin . makeMove gs) x
-  in if isJust (checkWinner gs) then head $ catMaybes [checkWinner gs] else aux pmvs False
+  in case checkWinner gs of
+    Just win -> win
+    Nothing -> aux pmvs False

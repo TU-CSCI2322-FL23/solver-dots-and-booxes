@@ -5,7 +5,7 @@ import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
 import Data.List (intercalate, transpose)
 import Data.List.Split ()
-import Data.Maybe ( catMaybes, isJust )
+import Data.Maybe ( catMaybes, isJust, mapMaybe )
 import Debug.Trace ()
 import Text.XHtml (base)
 
@@ -76,7 +76,7 @@ checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x, y), Rght) `el
 
 -- updates gamestate with move
 makeMove :: GameState -> Move -> Maybe GameState
-makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Rght)) then 
+makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Rght)) then
                                                  let upBox = checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      downBox = checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght))
                                                      newBoxes = catMaybes [upBox, downBox]
@@ -116,9 +116,9 @@ printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x, (y `div` 2)), Rght
 
 --return Vertical line
 printVerticalLine :: GameState -> Int -> String
-printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else "2" 
-                                      in concat [ if Move ((x, (y `div` 2)), Down) `elem` mvs 
-                                                  then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1" 
+printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else "2"
+                                      in concat [ if Move ((x, (y `div` 2)), Down) `elem` mvs
+                                                  then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1"
                                                        else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
                                                        else "| "
                                                   else "  " | x <- [0..columns]]
@@ -140,15 +140,13 @@ turn_swap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
 
 whoWillwin :: GameState -> Winner
 whoWillwin gs@(trn, mvs, bxs) =
-  let pmvs = findLegalMoves gs
-      aux :: [Move] -> Bool -> Winner
+  let possibleGS = mapMaybe (makeMove gs) (findLegalMoves gs)
+      aux :: [GameState] -> Bool -> Winner
       aux [] drawn = if drawn then Draw else Winner (turn_swap trn)
-      aux (x:xs) drawn  
-        |Winner trn == result = result 
-        |Draw == result = aux xs True
-        |otherwise = aux xs drawn
-        where result = (whoWillwin . makeMove gs) x
+      aux (x:xs) drawn = case whoWillwin x of 
+        Winner foo -> if foo == trn then Winner trn else aux xs drawn
+        Draw -> aux xs True
   in case checkWinner gs of
     Just win -> win
-    Nothing -> aux pmvs False
+    Nothing -> aux possibleGS False
 

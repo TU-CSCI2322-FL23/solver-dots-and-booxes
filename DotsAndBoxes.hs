@@ -144,11 +144,11 @@ bestMove :: GameState -> Maybe Move
 bestMove gs@(trn, mvs, bxs) =
   let possibleMvs = findLegalMoves gs
       possibleGS = zip possibleMvs (map (makeMove gs) possibleMvs)
-      aux :: [(Move,Maybe GameState)] ->Bool-> Maybe Move -> Maybe Move
-      aux [] True (Just mv) = Just mv
-      aux [] False Nothing = Nothing
-      aux ((x,Nothing):xs) drawn mv = aux xs drawn mv
-      aux ((x,Just xgs@(xtrn, _,_)):xs) drawn mv = case whoWillWin xgs of
-        Winner foo -> if foo == trn then Just x else aux xs drawn mv
-        Draw -> aux xs True (Just x)
-  in aux possibleGS False Nothing
+      aux :: [(Move,Maybe GameState)] ->Maybe Move -> Maybe Move
+      aux [] (Just mv) = Just mv
+      aux [] Nothing = Nothing
+      aux ((x,Nothing):xs) mv = aux xs  mv
+      aux ((x,Just xgs):xs) mv = case whoWillWin xgs of
+        Winner foo -> if foo == trn then Just x else aux xs mv
+        Draw -> aux xs (Just x)
+  in aux possibleGS Nothing

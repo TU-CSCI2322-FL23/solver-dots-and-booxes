@@ -26,13 +26,16 @@ main :: IO ()
 main = undefined
 
 -- turns move string into maybe move, i.e. "33R" -> Move ((3, 3), Rght)
+-- gives "no parse" error if xstr or ystr cannot be read, appropriate exception??
 stringToMove :: String -> Maybe Move
-stringToMove (xstr:ystr:dstr) = let x = read [xstr] :: Int
-                                    y = read [ystr] :: Int
-                                    dir = case dstr of
-                                          "D" -> Down
-                                          "R" -> Rght
-                                in Just $ Move ((x, y), dir)
+stringToMove [xstr, ystr, dstr] = if dstr `elem` ['D', 'R']
+                                  then let x = read [xstr] :: Int
+                                           y = read [ystr] :: Int
+                                           dir = case dstr of
+                                                 'D' -> Down
+                                                 'R' -> Rght
+                                       in Just $ Move ((x, y), dir)
+                                 else Nothing
 stringToMove _ = Nothing
 
 -- plays moves on a gamestate and returns maybe gamestate if moves are valid

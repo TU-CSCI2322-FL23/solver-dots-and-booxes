@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use camelCase" #-}
 module DotsAndBoxes where
 import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
@@ -24,12 +22,11 @@ data Winner = Winner Player | Draw deriving (Eq, Show)
 
 -- initial gamestate
 initGame = (PlayerOne, [], []) :: GameState
+
 --starting out 5x4 boxes
 rows = 4 :: Int
 columns = 5 :: Int
 numBoxes = rows * columns :: Int
-
-
 
 -- creates a list of all possible moves for an m x n board
 createAllMoves :: Int -> Int -> [Move]
@@ -41,109 +38,101 @@ findLegalMoves :: GameState -> [Move]
 findLegalMoves (trn, mvs, bxs) = let allMoves = createAllMoves rows columns
                                  in [ move | move <- allMoves, move `notElem` mvs ]
 
+checkBounds :: Move -> Bool
+checkBounds (Move ((x, y), Rght)) = x >= 0 && x < columns && y >= 0 && y <= rows
+checkBounds (Move ((x, y), Down)) = x >= 0 && x <= columns && y >= 0 && y < rows
+
 -- checks if a move is legal
 checkLegal :: GameState -> Move -> Bool
-checkLegal game move = move `elem` findLegalMoves game
+checkLegal (trn, mvs, bxs) move = move `notElem` mvs && checkBounds move
 
--- checks if upper box was made with right line
-checkBoxUp :: GameState -> Move -> Maybe Box
-checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y-1), Rght) `elem` mvs
-                                                   && Move ((x, y-1), Down) `elem` mvs
-                                                   && Move ((x+1, y-1), Down) `elem` mvs
-                                                   then Just (Box (x, y-1) trn)
-                                                   else Nothing
--- checks if lower box was made with right line
-checkBoxDown :: GameState -> Move -> Maybe Box
-checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght)) = if Move ((x, y+1), Rght) `elem` mvs
-                                                     && Move ((x, y), Down) `elem` mvs
-                                                     && Move ((x+1, y), Down) `elem` mvs
-                                                     then Just (Box (x, y) trn)
-                                                     else Nothing
--- checks if left box was made with down line
-checkBoxLeft :: GameState -> Move -> Maybe Box
-checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x-1, y), Rght) `elem` mvs
-                                                     && Move ((x-1, y), Down) `elem` mvs
-                                                     && Move ((x-1, y+1), Rght) `elem` mvs
-                                                     then Just (Box (x-1, y) trn)
-                                                     else Nothing
--- checks if right box was made with down line
-checkBoxRight :: GameState -> Move -> Maybe Box
-checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down)) = if Move ((x, y), Rght) `elem` mvs
-                                                      && Move ((x+1, y), Down) `elem` mvs
-                                                      && Move ((x, y+1), Rght) `elem` mvs
-                                                      then Just (Box (x, y) trn)
-                                                      else Nothing
+subset :: Eq a => [a] -> [a] -> Bool
+subset [] lst = True
+subset (x:xs) lst
+  | x `elem` lst = subset xs lst
+  | otherwise    = False
+
+checkBoxes :: GameState -> Move -> [Box]
+checkBoxes (trn, mvs, bxs) (Move ((x, y), Rght)) = 
+  let upperMoves = [Move ((x, y-1), Rght), Move ((x, y-1), Down), Move ((x+1, y-1), Down)]
+      lowerMoves = [Move ((x, y+1), Rght), Move ((x, y), Down), Move ((x+1, y), Down)]
+  in [Box (x, y) trn | lowerMoves `subset` mvs] 
+  ++ [Box (x, y-1) trn | upperMoves `subset` mvs]
+
+checkBoxes (trn, mvs, bxs) (Move ((x, y), Down)) = 
+  let leftMoves = [Move ((x-1, y), Rght), Move ((x-1, y), Down), Move ((x-1, y+1), Rght)]
+      rightMoves = [Move ((x, y), Rght), Move ((x+1, y), Down), Move ((x, y+1), Rght)]
+  in [Box (x-1, y) trn | leftMoves `subset` mvs] 
+  ++ [Box (x, y) trn | rightMoves `subset` mvs]
 
 -- updates gamestate with move
 makeMove :: GameState -> Move -> Maybe GameState
-makeMove (trn, mvs, bxs) (Move ((x, y), Rght)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Rght)) then
-                                                 let upBox = checkBoxUp (trn, mvs, bxs) (Move ((x, y), Rght))
-                                                     downBox = checkBoxDown (trn, mvs, bxs) (Move ((x, y), Rght))
-                                                     newBoxes = catMaybes [upBox, downBox]
-                                                     next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in Just (if not (null newBoxes) then trn else next, Move ((x, y), Rght):mvs, newBoxes ++ bxs)
-                                                 else Nothing
+makeMove game@(trn, mvs, bxs) move@(Move ((x, y), Rght)) =
+    if checkLegal game move
+    then let newBoxes = checkBoxes game move
+             next = if null newBoxes then turnSwap trn else trn                                         
+         in Just (next, move:mvs, newBoxes ++ bxs)
+    else Nothing
 
-
-makeMove (trn, mvs, bxs) (Move ((x, y), Down)) = if checkLegal (trn, mvs, bxs) (Move ((x, y), Down)) then
-                                                 let leftBox = checkBoxLeft (trn, mvs, bxs) (Move ((x, y), Down))
-                                                     rightBox = checkBoxRight (trn, mvs, bxs) (Move ((x, y), Down))
-                                                     newBoxes = catMaybes [leftBox, rightBox]
-                                                     next = if trn == PlayerOne then PlayerTwo else PlayerOne
-                                                 in Just (if not (null newBoxes) then trn else next, Move ((x, y), Down):mvs, newBoxes ++ bxs)
-                                                    else Nothing
+makeMove game@(trn, mvs, bxs) move@(Move ((x, y), Down)) =
+    if checkLegal game move
+    then let newBoxes = checkBoxes game move
+             next = if null newBoxes then turnSwap trn else trn                                         
+         in Just (next, move:mvs, newBoxes ++ bxs)
+    else Nothing
 
 -- checks if there is a winner and returns winner if so
 checkWinner :: GameState -> Maybe Winner
-checkWinner (trn, mvs, bxs) = if length bxs >= numBoxes
-                              then Just (calculateScore (trn, mvs, bxs) (0, 0))
-                              else Nothing
+checkWinner game@(trn, mvs, bxs) = if length bxs >= numBoxes
+                                   then Just (calculateScore game (0, 0))
+                                   else Nothing
 
 -- calculates the final score and returns a winner or a draw
 calculateScore :: GameState -> (Int, Int) -> Winner
-calculateScore (_, _, []) (p1score, p2score)
+calculateScore (trn, mvs, []) (p1score, p2score)
   | p1score > p2score = Winner PlayerOne
   | p2score > p1score = Winner PlayerTwo
   | otherwise = Draw
-calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = if player == PlayerOne
-                                                                   then calculateScore (trn, mvs, bxs) (p1score+1, p2score)
-                                                                   else calculateScore (trn, mvs, bxs) (p1score, p2score+1)
-
+calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = 
+  case player of
+  PlayerOne -> calculateScore (trn, mvs, bxs) (p1score+1, p2score)
+  PlayerTwo -> calculateScore (trn, mvs, bxs) (p1score, p2score+1)
 
 --return horizontal line
 printHorizontalLine :: GameState -> Int -> String
-printHorizontalLine (trn, mvs, bxs) y = concat [ if Move ((x, (y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
+printHorizontalLine (trn, mvs, bxs) y = 
+  concat [ if Move ((x, (y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
 
 --return Vertical line
 printVerticalLine :: GameState -> Int -> String
-printVerticalLine (trn, mvs, bxs) y = let p = if trn == PlayerOne then "1" else "2"
-                                      in concat [ if Move ((x, (y `div` 2)), Down) `elem` mvs
-                                                  then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1"
-                                                       else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
-                                                       else "| "
-                                                  else "  " | x <- [0..columns]]
-
+printVerticalLine (trn, mvs, bxs) y = 
+  let p = if trn == PlayerOne then "1" else "2"
+  in concat [ if Move ((x, (y `div` 2)), Down) `elem` mvs
+              then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1"
+                   else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
+                   else "| "
+              else "  " | x <- [0..columns]]
 
 --return the game board
 printGameBoard :: GameState -> [String]
 --printGameBoard (trn, mvs, bxs) ((rows*2)+1) = if trn == PlayerOne then " Player One's Turn" else " Player Two's Turn"
-printGameBoard (trn,mvs,bxs) = ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y
-                                                              else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
+printGameBoard (trn,mvs,bxs) = 
+  ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y
+                             else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
 
-
-showGame :: GameState -> IO ()
-showGame game = let lns = printGameBoard game
+prettyShow :: GameState -> IO ()
+prettyShow game = let lns = printGameBoard game
                   in mapM_ putStrLn lns
 
-turn_swap :: Player -> Player
-turn_swap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
+turnSwap :: Player -> Player
+turnSwap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
 
-whoWillwin :: GameState -> Winner
-whoWillwin gs@(trn, mvs, bxs) =
+whoWillWin :: GameState -> Winner
+whoWillWin gs@(trn, mvs, bxs) =
   let possibleGS = mapMaybe (makeMove gs) (findLegalMoves gs)
       aux :: [GameState] -> Bool -> Winner
-      aux [] drawn = if drawn then Draw else Winner (turn_swap trn)
-      aux (x:xs) drawn = case whoWillwin x of 
+      aux [] drawn = if drawn then Draw else Winner (turnSwap trn)
+      aux (x:xs) drawn = case whoWillWin x of 
         Winner foo -> if foo == trn then Winner trn else aux xs drawn
         Draw -> aux xs True
   in case checkWinner gs of

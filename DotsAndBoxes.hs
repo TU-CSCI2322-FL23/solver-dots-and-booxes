@@ -152,3 +152,16 @@ bestMove gs@(trn, mvs, bxs) =
         Winner foo -> if foo == trn then Just x else aux xs mv
         Draw -> aux xs (Just x)
   in aux possibleGS Nothing
+
+printMove :: Maybe Move -> String
+printMove Nothing = "There isn't a move"
+printMove (Just (Move ((x,y),dir))) = "(" ++ (show x) ++ "," ++ (show y) ++ ")" ++ " in the direction " ++ (showDir dir)
+
+showDir :: Direction -> String
+showDir Rght = "right"
+showDir Down = "down"
+
+printWinner :: Winner -> String
+printWinner Draw = "draw"
+printWinner (Winner PlayerOne) = "Player One"
+printWinner (Winner PlayerTwo) = "Player Two"

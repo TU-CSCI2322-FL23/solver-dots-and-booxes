@@ -3,7 +3,7 @@ import Data.Ratio ((%), Ratio)
 import Data.Tuple (swap)
 import Data.List (intercalate)
 import Data.List.Split (splitOn)
-import Data.Maybe ( catMaybes, isJust, fromMaybe, fromJust )
+import Data.Maybe ( catMaybes, isJust, fromMaybe, fromJust, isNothing )
 import Debug.Trace
 import Text.XHtml (base)
 import Data.Char (ord)
@@ -39,46 +39,46 @@ stringToMove [xstr, ystr, dstr] = if dstr `elem` ['D', 'R']
 stringToMove lst = Nothing
 
 stringToBox :: String -> Maybe Box
-stringToBox [xstr,ystr,pstr] = let x = read [xstr] :: Int
-                                   y = read [ystr] :: Int
-                                   p = case pstr of
-                                        '1' -> PlayerOne
-                                        '2' -> PlayerTwo
-                                in Just $ Box (x,y) p
+stringToBox [xstr, ystr, pstr] = if pstr `elem` ['1', '2']
+                                 then let x = read [xstr] :: Int
+                                          y = read [ystr] :: Int
+                                          p = case pstr of
+                                              '1' -> PlayerOne
+                                              '2' -> PlayerTwo
+                                      in Just $ Box (x,y) p
+                                 else Nothing
 stringToBox lst = Nothing
 
--- plays moves on a gamestate and returns maybe gamestate if moves are valid
-playMoves :: GameState -> [Move] -> Maybe GameState
-playMoves game [] = Just game
-playMoves game (mv:mvs) = let newGame = makeMove game mv
-                          in case newGame of
-                             Nothing -> Nothing
-                             _ -> playMoves (fromJust newGame) mvs
+readPlayer :: String -> Maybe Player
+readPlayer s = case s of 
+               "P1" -> Just PlayerOne
+               "P2" -> Just PlayerTwo
+               _    -> Nothing
 
+readMoves :: String -> Maybe [Move]
+readMoves str = mapM stringToMove (splitOn "," str) 
 
-readPlayer :: String -> Player
-readPlayer s = if s == "P1" then PlayerOne else PlayerTwo
-
-readMoves :: String -> [Move]
-readMoves str = moveMaker (splitOn "," str)
-
-moveMaker :: [String] -> [Move]
-moveMaker [] = []
-moveMaker (x:xs) = fromJust (stringToMove x) : moveMaker xs
-
-readBoxes :: String -> [Box]
-readBoxes str = boxMaker (splitOn "," str)
-
-boxMaker :: [String] -> [Box]
-boxMaker [] = []
-boxMaker (x:xs) = fromJust (stringToBox x) : boxMaker xs
+readBoxes :: String -> Maybe [Box]
+readBoxes str = mapM stringToBox (splitOn "," str)
 
 readGame :: String -> Maybe GameState
-readGame str = 
-        case lines str of
-            [trn,mvs,bxs] -> Just (readPlayer trn, readMoves mvs, readBoxes bxs)
-            _ -> Nothing
-
+readGame str = case lines str of
+               [trnStr, mvsStr, bxsStr] -> let trn = readPlayer trnStr
+                                               mvs = readMoves mvsStr
+                                               bxs = readBoxes bxsStr
+                                           in if isNothing trn || isNothing mvs || isNothing bxs
+                                              then Nothing
+                                              else Just (fromJust trn, fromJust mvs, fromJust bxs)
+               [trnStr, mvsStr]         -> let trn = readPlayer trnStr
+                                               mvs = readMoves mvsStr
+                                           in if isNothing trn || isNothing mvs
+                                              then Nothing
+                                              else Just (fromJust trn, fromJust mvs, [])
+               [trnStr]                 -> let trn = readPlayer trnStr
+                                           in if isNothing trn
+                                              then Nothing
+                                              else Just (fromJust trn, [], [])
+               _                        -> Nothing
 
 turnToString :: Player -> String
 turnToString p = case p of
@@ -98,14 +98,20 @@ boxToString :: Box -> String
 boxToString (Box (x,y) p) = let xstr = show x
                                 ystr = show y
                                 pstr = case p of
-                                        PlayerOne -> "1"
-                                        PlayerTwo -> "2"
-                            in xstr++ystr++pstr
+                                       PlayerOne -> "1"
+                                       PlayerTwo -> "2"
+                            in xstr ++ ystr ++ pstr
 
--- turns gamestate into game string, i.e. (PlayerOne, [Move ((2,2),Down),Move ((0,0),Rght)], []) -> "00R,22D"
-showGame :: Maybe GameState -> String 
-showGame (Just (trn, mvs, bxs)) = trnStr++"\n"++mvsStr++"\n"++bxsStr
-                            where trnStr = turnToString trn
-                                  mvsStr = intercalate "," $ map moveToString mvs
-                                  bxsStr = intercalate "," $ map boxToString bxs
-showGame Nothing = ""
+showGame :: GameState -> String 
+showGame (trn, mvs, bxs) = trnStr ++ "\n" ++ mvsStr ++ "\n" ++ bxsStr
+                           where trnStr = turnToString trn
+                                 mvsStr = intercalate "," $ map moveToString mvs
+                                 bxsStr = intercalate "," $ map boxToString bxs
+
+checkValidGame :: GameState -> Bool
+checkValidGame game@(trn, mvs, bxs) = let aux g [] = Just g
+                                          aux g (x:xs) = let maybeG = makeMove g x
+                                                         in case maybeG of
+                                                            Nothing -> Nothing
+                                                            _       -> aux (fromJust maybeG) xs
+                                      in aux initGame mvs == Just game

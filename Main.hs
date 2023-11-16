@@ -7,7 +7,9 @@ import Data.Maybe ( catMaybes, isJust, fromMaybe, fromJust, isNothing )
 import Debug.Trace
 import Text.XHtml (base)
 import Data.Char (ord)
-
+import System.IO
+import System.Environment
+import System.Console.GetOpt
 {-
     Story 1 DONE
     Story 2 DONE
@@ -20,11 +22,21 @@ import Data.Char (ord)
     Liam Story 9 test cases for each function
     August Story 10 consider possible errors or edge cases. Return a Maybe Move, Maybe Game,  etc.
 -}
+readAllGames :: [String] -> [Maybe GameState]
+readAllGames [] = []
+readAllGames (x:xs) = readGame x:readAllGames xs
 
+turnToGames :: String -> [Maybe GameState]
+turnToGames str = let tmpstr = splitOn "\n\n" str
+                     in readAllGames tmpstr
 
 main :: IO ()
-main = undefined
-
+main =  do 
+           let filename = "test-cases.txt"
+           contents <- readFile (filename)
+           let gameString = show contents
+               listOfGames = turnToGames gameString
+           putStrLn (showGame (head listOfGames))
 -- turns move string into maybe move, i.e. "33R" -> Move ((3, 3), Rght)
 -- gives "no parse" error if xstr or ystr cannot be read, appropriate exception??
 stringToMove :: String -> Maybe Move
@@ -102,11 +114,12 @@ boxToString (Box (x,y) p) = let xstr = show x
                                        PlayerTwo -> "2"
                             in xstr ++ ystr ++ pstr
 
-showGame :: GameState -> String 
-showGame (trn, mvs, bxs) = trnStr ++ "\n" ++ mvsStr ++ "\n" ++ bxsStr
+showGame :: Maybe GameState -> String 
+showGame (Just (trn, mvs, bxs)) = trnStr ++ "\n" ++ mvsStr ++ "\n" ++ bxsStr
                            where trnStr = turnToString trn
                                  mvsStr = intercalate "," $ map moveToString mvs
                                  bxsStr = intercalate "," $ map boxToString bxs
+showGame (Nothing) = ""
 
 checkValidGame :: GameState -> Bool
 checkValidGame game@(trn, mvs, bxs) = let aux g [] = Just g

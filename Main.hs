@@ -22,13 +22,15 @@ import System.Console.GetOpt
     Liam Story 9 test cases for each function
     August Story 10 consider possible errors or edge cases. Return a Maybe Move, Maybe Game,  etc.
 -}
-readAllGames :: [String] -> [GameState]
-readAllGames [] = []
-readAllGames (x:xs) = (fromJust (readGame x)):readAllGames xs
+
+-- Can just be map (fromJust . readGame)
+-- readAllGames :: [String] -> [GameState]
+-- readAllGames [] = []
+-- readAllGames (x:xs) = (fromJust (readGame x)):readAllGames xs
 
 turnToGames :: String -> [GameState]
 turnToGames str = let tmpstr = splitOn "\n" str
-                     in readAllGames tmpstr
+                  in map (fromJust . readGame) tmpstr
 
 printAllGames :: [GameState] -> IO ()
 printAllGames [] = putStrLn "Good luck on your games!"
@@ -62,7 +64,9 @@ writeGame game file = writeFile file (showGame game)
 loadGame :: FilePath -> IO GameState
 loadGame file = do gameStr <- readFile file
                    let game = readGame gameStr
-                   return $ fromJust game
+                   case game of 
+                    Nothing -> error "Invalid game file!"
+                    _       -> return $ fromJust game
 
 putBestMove :: GameState -> IO ()
 putBestMove game = do let move = bestMove game
@@ -71,6 +75,10 @@ putBestMove game = do let move = bestMove game
                        _       -> do putStrLn ("The best move for the current player is: " ++ printMove move)
                                      putStrLn "If the move is played, the game will look like this: "
                                      prettyShow $ fromJust $ makeMove game (fromJust move)
+                                     case checkWinner $ fromJust $ makeMove game (fromJust move) of
+                                        Just (Winner PlayerOne) -> putStrLn "Player one wins!!"
+                                        Just (Winner PlayerTwo) -> putStrLn "Player two wins!!"
+                                        Nothing -> putStrLn "Keep playing!!"
             
 -- turns move string into maybe move, i.e. "33R" -> Move ((3, 3), Rght)
 -- gives "no parse" error if xstr or ystr cannot be read, appropriate exception??
@@ -103,13 +111,13 @@ readPlayer s = case s of
                _    -> Nothing
 
 readMoves :: String -> Maybe [Move]
-readMoves str = mapM stringToMove (splitOn "," str) 
+readMoves str = mapM stringToMove $ reverse (splitOn "," str) 
 
 readBoxes :: String -> Maybe [Box]
-readBoxes str = mapM stringToBox (splitOn "," str)
+readBoxes str = mapM stringToBox $ reverse (splitOn "," str)
 
 readGame :: String -> Maybe GameState
-readGame str = case splitOn " " str of
+readGame str = case splitOn "|" str of
                [trnStr, [], []]             -> do trn <- readPlayer trnStr
                                                   Just (trn, [], [])
                [trnStr, mvsStr, []]         -> do trn <- readPlayer trnStr
@@ -144,7 +152,7 @@ boxToString (Box (x,y) p) = let xstr = show x
                             in xstr ++ ystr ++ pstr
 
 showGame :: GameState -> String 
-showGame (trn, mvs, bxs) = trnStr ++ " " ++ mvsStr ++ " " ++ bxsStr
+showGame (trn, mvs, bxs) = trnStr ++ "|" ++ mvsStr ++ "|" ++ bxsStr
                            where trnStr = turnToString trn
                                  mvsStr = intercalate "," $ map moveToString mvs
                                  bxsStr = intercalate "," $ map boxToString bxs
@@ -162,10 +170,18 @@ printWinner Draw = "draw"
 printWinner (Winner PlayerOne) = "Player One"
 printWinner (Winner PlayerTwo) = "Player Two"
 
+-- is this acceptable? idk
 checkValidGame :: GameState -> Bool
 checkValidGame game@(trn, mvs, bxs) = let aux g [] = Just g
                                           aux g (x:xs) = let maybeG = makeMove g x
                                                          in case maybeG of
                                                             Nothing -> Nothing
                                                             _       -> aux (fromJust maybeG) xs
-                                      in aux initGame mvs == Just game
+                                      in aux initGame (reverse mvs) == Just game
+
+playMoves :: GameState -> [Move] -> Maybe GameState
+playMoves g [] = Just g
+playMoves g (x:xs) = let maybeG = makeMove g x
+                     in case maybeG of
+                        Nothing -> Nothing
+                        _       -> playMoves (fromJust maybeG) xs

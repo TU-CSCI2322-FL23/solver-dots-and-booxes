@@ -56,7 +56,8 @@ loadGame file = do gameStr <- readFile file
 putBestMove :: GameState -> IO ()
 putBestMove game = do let move = bestMove game
                       case move of
-                       Nothing -> putStrLn "There is no best move, you will lose :("
+                       Nothing -> do putStrLn "Game is over"
+                                     prettyShow $ fromJust $ makeMove game (fromJust move)
                        _       -> do putStrLn ("The best move for the current player is: " ++ printMove move)
                                      putStrLn "If the move is played, the game will look like this: "
                                      prettyShow $ fromJust $ makeMove game (fromJust move)

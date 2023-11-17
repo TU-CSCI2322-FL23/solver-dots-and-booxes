@@ -55,6 +55,22 @@ main = do args <- getArgs
           contents <- readFile (fname)
           let listOfGames = turnToGames contents
           printAllGames listOfGames
+
+writeGame :: GameState -> FilePath -> IO ()
+writeGame game file = writeFile file (showGame game)
+
+loadGame :: FilePath -> IO GameState
+loadGame file = do gameStr <- readFile file
+                   let game = readGame gameStr
+                   return $ fromJust game
+
+putBestMove :: GameState -> IO ()
+putBestMove game = do let move = bestMove game
+                      case move of
+                       Nothing -> putStrLn "There is no best move, you will lose :("
+                       _       -> do putStrLn ("The best move for the current player is: " ++ printMove move)
+                                     putStrLn "If the move is played, the game will look like this: "
+                                     prettyShow $ fromJust $ makeMove game (fromJust move)
             
 -- turns move string into maybe move, i.e. "33R" -> Move ((3, 3), Rght)
 -- gives "no parse" error if xstr or ystr cannot be read, appropriate exception??
@@ -94,16 +110,16 @@ readBoxes str = mapM stringToBox (splitOn "," str)
 
 readGame :: String -> Maybe GameState
 readGame str = case splitOn " " str of
-               [trnStr, mvsStr, bxsStr] -> do trn <- readPlayer trnStr
-                                              mvs <- readMoves mvsStr
-                                              bxs <- readBoxes bxsStr
-                                              Just (trn, mvs, bxs)
-               [trnStr, mvsStr]         -> do trn <- readPlayer trnStr
-                                              mvs <- readMoves mvsStr
-                                              Just (trn, mvs, [])
-               [trnStr]                 -> do trn <- readPlayer trnStr
-                                              Just (trn, [], [])
-               _                        -> Nothing
+               [trnStr, [], []]             -> do trn <- readPlayer trnStr
+                                                  Just (trn, [], [])
+               [trnStr, mvsStr, []]         -> do trn <- readPlayer trnStr
+                                                  mvs <- readMoves mvsStr
+                                                  Just (trn, mvs, [])
+               [trnStr, mvsStr, bxsStr]     -> do trn <- readPlayer trnStr
+                                                  mvs <- readMoves mvsStr
+                                                  bxs <- readBoxes bxsStr
+                                                  Just (trn, mvs, bxs)
+               _                            -> Nothing
 
 turnToString :: Player -> String
 turnToString p = case p of
@@ -132,6 +148,19 @@ showGame (trn, mvs, bxs) = trnStr ++ " " ++ mvsStr ++ " " ++ bxsStr
                            where trnStr = turnToString trn
                                  mvsStr = intercalate "," $ map moveToString mvs
                                  bxsStr = intercalate "," $ map boxToString bxs
+
+printMove :: Maybe Move -> String
+printMove Nothing = "There isn't a move"
+printMove (Just (Move ((x,y),dir))) = "(" ++ (show x) ++ "," ++ (show y) ++ ")" ++ " in the direction " ++ (showDir dir)
+
+showDir :: Direction -> String
+showDir Rght = "right"
+showDir Down = "down"
+
+printWinner :: Winner -> String
+printWinner Draw = "draw"
+printWinner (Winner PlayerOne) = "Player One"
+printWinner (Winner PlayerTwo) = "Player Two"
 
 checkValidGame :: GameState -> Bool
 checkValidGame game@(trn, mvs, bxs) = let aux g [] = Just g

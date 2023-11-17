@@ -1,4 +1,4 @@
-Turn: PlayerTwo
+Turn: PlayerOne
 .-.-.-.-.-.
 |2|2|2|2|2|
 .-.-.-.-.-.
@@ -6,7 +6,7 @@ Turn: PlayerTwo
 .-.-.-.-.-.
 |2|1|2|1|2|
 .-.-.-.-.-.
-|2|1|2|2|
+|2|1|2|1|
 .-.-.-.-. .
 
 PlayerTwo will win

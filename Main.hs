@@ -10,23 +10,8 @@ import Data.Char (ord)
 import System.IO
 import System.Environment
 import System.Console.GetOpt
-{-
-    Story 1 DONE
-    Story 2 DONE
-    Choudry and Aashish Story 3 whoWillWin :: Game -> Winner 
-    All Story 4 bestMove :: Game -> Move
-    Liam and August Story 5 simple text format
-    Liam and August Story 6 readGame :: String -> Game "3 2 R, 1 2 D, 5 6 R...."
-    Liam and August Story 7 showGame :: Game -> String
-    Liam Story 8 one each to read and write game states from a file, one that computes and prints the winning move, and a simple main action. 
-    Liam Story 9 test cases for each function
-    August Story 10 consider possible errors or edge cases. Return a Maybe Move, Maybe Game,  etc.
--}
 
--- Can just be map (fromJust . readGame)
--- readAllGames :: [String] -> [GameState]
--- readAllGames [] = []
--- readAllGames (x:xs) = (fromJust (readGame x)):readAllGames xs
+
 
 turnToGames :: String -> [GameState]
 turnToGames str = let tmpstr = splitOn "\n" str

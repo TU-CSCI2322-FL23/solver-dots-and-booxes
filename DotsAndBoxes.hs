@@ -1,5 +1,5 @@
 module DotsAndBoxes where
-import Data.List (intercalate)
+import Data.List (intercalate, partition)
 import Data.Maybe (catMaybes, mapMaybe)
 
 data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
@@ -7,28 +7,26 @@ data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
 type Point = (Int, Int)
 data Direction = Rght | Down deriving (Eq, Show)
 type Line = (Point, Direction)
-data Move = Move Line deriving (Eq, Show)
+newtype Move = Move Line deriving (Eq, Show)
 
 data Box = Box Point Player deriving (Eq, Show) -- top left point of box and who controls it
 
-type GameState = (Player, [Move], [Box]) --whose turn it is, list of moves done, list of boxes completed
+type GameState = (Player, [Move], [Box]) -- whose turn it is, list of moves done, list of boxes completed
 
 data Winner = Winner Player | Draw deriving (Eq, Show)
 
 -- initial gamestate
 initGame = (PlayerOne, [], []) :: GameState
 
---starting out 5x4 boxes
+-- starting out 4x5 boxes
 rows = 4 :: Int
 columns = 5 :: Int
 numBoxes = rows * columns :: Int
 
--- creates a list of all possible moves for an m x n board
 createAllMoves :: Int -> Int -> [Move]
 createAllMoves m n = [ Move ((x, y), Rght) | x <- [0..n-1], y <- [0..m] ]
                   ++ [ Move ((x, y), Down) | x <- [0..n], y <- [0..m-1] ]
 
--- finds all the possible legal moves for a gamestate
 findLegalMoves :: GameState -> [Move]
 findLegalMoves (trn, mvs, bxs) = let allMoves = createAllMoves rows columns
                                  in [ move | move <- allMoves, move `notElem` mvs ]
@@ -39,6 +37,9 @@ checkBounds (Move ((x, y), Down)) = x >= 0 && x <= columns && y >= 0 && y < rows
 
 checkLegal :: GameState -> Move -> Bool
 checkLegal (trn, mvs, bxs) move = move `notElem` mvs && checkBounds move
+
+turnSwap :: Player -> Player
+turnSwap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
 
 subset :: Eq a => [a] -> [a] -> Bool
 subset [] lst = True
@@ -76,39 +77,17 @@ makeMove game@(trn, mvs, bxs) move@(Move ((x, y), Down)) =
 
 checkWinner :: GameState -> Maybe Winner
 checkWinner game@(trn, mvs, bxs) = if length bxs >= numBoxes
-                                   then Just (calculateScore game (0, 0))
+                                   then Just $ calculateScore game
                                    else Nothing
 
-calculateScore :: GameState -> (Int, Int) -> Winner
-calculateScore (trn, mvs, []) (p1score, p2score)
-  | p1score > p2score = Winner PlayerOne
-  | p2score > p1score = Winner PlayerTwo
-  | otherwise = Draw
-calculateScore (trn, mvs, (Box _ player):bxs) (p1score, p2score) = 
-  case player of
-  PlayerOne -> calculateScore (trn, mvs, bxs) (p1score+1, p2score)
-  PlayerTwo -> calculateScore (trn, mvs, bxs) (p1score, p2score+1)
-
-printHorizontalLine :: GameState -> Int -> String
-printHorizontalLine (trn, mvs, bxs) y = 
-  concat [ if Move ((x, (y `div` 2)), Rght) `elem` mvs then ".-" else ". " | x <- [0..columns]]
-
-printVerticalLine :: GameState -> Int -> String
-printVerticalLine (trn, mvs, bxs) y = 
-  let p = if trn == PlayerOne then "1" else "2"
-  in concat [ if Move ((x, (y `div` 2)), Down) `elem` mvs
-              then if Box (x, (y `div` 2)) PlayerOne `elem` bxs then "|" ++ "1"
-                   else if Box (x, (y `div` 2)) PlayerTwo `elem` bxs then "|" ++ "2"
-                   else "| "
-              else "  " | x <- [0..columns]]
-
-printGameBoard :: GameState -> [String]
-printGameBoard (trn,mvs,bxs) = 
-  ("Turn: " ++ show trn) : [ if even y then printHorizontalLine (trn, mvs, bxs) y
-                             else printVerticalLine (trn, mvs, bxs) y | y <- [0..(rows*2)]]
-
-turnSwap :: Player -> Player
-turnSwap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
+calculateScore :: GameState -> Winner
+calculateScore (trn, mvs, bxs) 
+  | p1Score > p2Score = Winner PlayerOne
+  | p1Score < p2Score = Winner PlayerTwo
+  | otherwise         = Draw
+  where (p1Boxes, p2Boxes) = partition (\(Box point player) -> player == PlayerOne) bxs
+        p1Score = length p1Boxes
+        p2Score = length p2Boxes
 
 whoWillWin :: GameState -> Winner
 whoWillWin gs@(trn, mvs, bxs) =
@@ -119,18 +98,33 @@ whoWillWin gs@(trn, mvs, bxs) =
         Winner foo -> if foo == trn then Winner trn else aux xs drawn
         Draw -> aux xs True
   in case checkWinner gs of
-    Just win -> win
-    Nothing -> aux possibleGS False
+     Just win -> win
+     Nothing -> aux possibleGS False
 
 bestMove :: GameState -> Maybe Move
 bestMove gs@(trn, mvs, bxs) =
   let possibleMvs = findLegalMoves gs
       possibleGS = zip possibleMvs (map (makeMove gs) possibleMvs)
-      aux :: [(Move, Maybe GameState)] ->Maybe Move -> Maybe Move
+      aux :: [(Move, Maybe GameState)] -> Maybe Move -> Maybe Move
       aux [] (Just mv) = Just mv
       aux [] Nothing = if null possibleMvs then Nothing else Just (head possibleMvs)
-      aux ((x, Nothing):xs) mv = aux xs  mv
+      aux ((x, Nothing):xs) mv = aux xs mv
       aux ((x, Just xgs):xs) mv = case whoWillWin xgs of
-        Winner foo -> if foo == trn then Just x else aux xs mv
-        Draw -> aux xs (Just x)
+                                  Winner foo -> if foo == trn then Just x else aux xs mv
+                                  Draw -> aux xs (Just x)
   in aux possibleGS Nothing
+
+-- ASK FOGARTY!!!!
+-- Is this the correct way to implement this?? Needs FOGARTY'S APPROVAL!!!
+checkValidGame :: GameState -> Maybe GameState
+checkValidGame game@(trn, mvs, bxs) = let correctGame = playMoves initGame mvs
+                                      in if correctGame == Just game
+                                         then Just game
+                                         else Nothing
+
+playMoves :: GameState -> [Move] -> Maybe GameState
+playMoves g [] = Just g
+playMoves g (x:xs) = let maybeG = makeMove g x
+                     in case maybeG of
+                        Nothing -> Nothing
+                        Just gm -> playMoves gm xs

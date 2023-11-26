@@ -1,6 +1,7 @@
 module ReadAndShow where
 import DotsAndBoxes
 import Data.List.Extra (splitOn, intercalate)
+import Text.Read (readMaybe)
 
 readGame :: String -> Maybe GameState
 readGame str = case splitOn "|" str of
@@ -30,25 +31,23 @@ readBoxes str = mapM readBox (splitOn "," str)
 -- ASK FOGARTY!!!!        
 -- gives "no parse" error if xstr or ystr cannot be read, appropriate exception?? 
 readMove :: String -> Maybe Move
-readMove [xstr, ystr, dstr] = if dstr `elem` ['D', 'R']
-                                  then let x = read [xstr] :: Int
-                                           y = read [ystr] :: Int
-                                           dir = case dstr of
-                                                 'D' -> Down
-                                                 'R' -> Rght
-                                       in Just $ Move ((x, y), dir)
-                                 else Nothing
+readMove [xchar, ychar, dchar] = do x <- readMaybe [xchar] :: Maybe Int
+                                    y <- readMaybe [ychar] :: Maybe Int
+                                    dir <- readDir dchar
+                                    Just $ Move ((x, y), dir)
+                                 where readDir 'D' = Just Down
+                                       readDir 'R' = Just Rght
+                                       readDir  _  = Nothing
 readMove str = Nothing
 
 readBox :: String -> Maybe Box
-readBox [xstr, ystr, pstr] = if pstr `elem` ['1', '2']
-                                 then let x = read [xstr] :: Int
-                                          y = read [ystr] :: Int
-                                          p = case pstr of
-                                              '1' -> PlayerOne
-                                              '2' -> PlayerTwo
-                                      in Just $ Box (x, y) p
-                                 else Nothing
+readBox [xchar, ychar, pchar] = do x <- readMaybe [xchar] :: Maybe Int
+                                   y <- readMaybe [ychar] :: Maybe Int
+                                   p <- readTrn pchar
+                                   Just $ Box (x, y) p
+                                where readTrn '1' = Just PlayerOne
+                                      readTrn '2' = Just PlayerTwo
+                                      readTrn  _  = Nothing
 readBox str = Nothing
 
 showGame :: GameState -> String 
@@ -89,3 +88,30 @@ showWinner (Winner PlayerTwo) = "Player two"
 
 printMove :: Move -> String
 printMove (Move ((x, y), dir)) = "(" ++ show x ++ ", " ++ show y ++ ")" ++ " in the direction " ++ showDirection dir
+
+prettyShow :: GameState -> IO ()
+prettyShow game = let lns = printGameBoard game 
+                  in mapM_ putStrLn lns
+
+printGameBoard :: GameState -> [String]
+printGameBoard gs@(trn,mvs,bxs) = 
+  ("Turn: " ++ show trn) : [ if even y then printHorizontalLine gs (y `div` 2)
+                             else printVerticalLine gs (y `div` 2) | y <- [0..(rows * 2)]]
+
+printHorizontalLine :: GameState -> Int -> String
+printHorizontalLine gs@(trn, mvs, bxs) y = 
+  concat [ horizontalString gs (x, y) | x <- [0..columns]]
+
+printVerticalLine :: GameState -> Int -> String
+printVerticalLine gs@(trn, mvs, bxs) y = 
+  concat [ verticalString gs (x, y) | x <- [0..columns]]
+
+horizontalString :: GameState -> Point -> String
+horizontalString (trn, mvs, bxs) (x, y) = if Move ((x, y), Rght) `elem` mvs then ".-" else ". "
+
+verticalString :: GameState -> Point -> String
+verticalString (trn, mvs, bxs) (x, y) = if Move ((x, y), Down) `elem` mvs
+                                        then if Box (x, y) PlayerOne `elem` bxs then "|" ++ "1"
+                                             else if Box (x, y) PlayerTwo `elem` bxs then "|" ++ "2"
+                                             else "| "
+                                        else "  "

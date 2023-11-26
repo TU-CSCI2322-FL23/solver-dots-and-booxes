@@ -4,6 +4,6 @@ Created by: August, Liam, Choudhry, and Aashish
 # File Descriptions:
 Main.hs - Main function and IO functions  
 DotsAndBoxes.hs - game itself  
-Solver.hs - Solver functions 
+Solver.hs - Solver functions  
 ReadAndShow.hs - contains all the read/show functions  
 tests - contains text files for different gamestates  

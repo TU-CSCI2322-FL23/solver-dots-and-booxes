@@ -1,6 +1,6 @@
 module DotsAndBoxes where
 import Data.List (intercalate, partition)
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes, mapMaybe, fromMaybe)
 
 data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
 
@@ -89,33 +89,6 @@ calculateScore (trn, mvs, bxs)
         p1Score = length p1Boxes
         p2Score = length p2Boxes
 
-whoWillWin :: GameState -> Winner
-whoWillWin gs@(trn, mvs, bxs) =
-  let possibleGS = mapMaybe (makeMove gs) (findLegalMoves gs)
-      aux :: [GameState] -> Bool -> Winner
-      aux [] drawn = if drawn then Draw else Winner (turnSwap trn)
-      aux (x:xs) drawn = case whoWillWin x of 
-        Winner foo -> if foo == trn then Winner trn else aux xs drawn
-        Draw -> aux xs True
-  in case checkWinner gs of
-     Just win -> win
-     Nothing -> aux possibleGS False
-
-bestMove :: GameState -> Maybe Move
-bestMove gs@(trn, mvs, bxs) =
-  let possibleMvs = findLegalMoves gs
-      possibleGS = zip possibleMvs (map (makeMove gs) possibleMvs)
-      aux :: [(Move, Maybe GameState)] -> Maybe Move -> Maybe Move
-      aux [] (Just mv) = Just mv
-      aux [] Nothing = if null possibleMvs then Nothing else Just (head possibleMvs)
-      aux ((x, Nothing):xs) mv = aux xs mv
-      aux ((x, Just xgs):xs) mv = case whoWillWin xgs of
-                                  Winner foo -> if foo == trn then Just x else aux xs mv
-                                  Draw -> aux xs (Just x)
-  in aux possibleGS Nothing
-
--- ASK FOGARTY!!!!
--- Is this the correct way to implement this?? Needs FOGARTY'S APPROVAL!!!
 checkValidGame :: GameState -> Maybe GameState
 checkValidGame game@(trn, mvs, bxs) = let correctGame = playMoves initGame mvs
                                       in if correctGame == Just game

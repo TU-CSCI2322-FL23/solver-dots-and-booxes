@@ -7,14 +7,16 @@ import System.Environment (getArgs)
 import Data.List.Extra (splitOn)
 import System.Console.GetOpt
 
-data Flag = Win | Depth String | Help deriving (Show, Eq)
+data Flag = Win | Depth String | Help | Verbose | Interactive | Mv String deriving (Show, Eq)
 options :: [OptDescr Flag]
 options = [ Option ['w'] ["winner"] (NoArg Win) "Will fully run through the game and print the best move."
           , Option ['h'] ["help"] (NoArg Help) "Will give you a help menu."
           , Option ['d'] ["depth"] (ReqArg Depth "<num>") "Will allow you to change the depth of the searching to <num>, default value is 4."
+          , Option ['m'] ["move"]  (ReqArg Mv "<move>") "Will place move <move> and print out the new board state."
+          , Option ['v'] ["verbose"] (NoArg Verbose) "Outputs the move and a description of how good it is (win, lose, tie)"
+          , Option ['i'] ["interactive"] (NoArg Interactive) "Start a new game against the computer"
           ]
 
-depth = 4 :: Int
 printAllGames :: [Maybe GameState] -> Int -> IO ()
 printAllGames [] n = do putStrLn "Good luck!"
                         putStrLn ""
@@ -64,12 +66,10 @@ main = do args <- getArgs
                     contents <- readFile fname
                     let listOfGames = map readGame $ splitOn "\n" contents
                     if Win `elem` flags then printAllGames listOfGames 1 
-          else do
-                    putStrLn "PUT OTHER FLAGS HERE!!!!!"
+                         else do
+                                   putStrLn "PUT OTHER FLAGS HERE!!!!!"
 
 findDepthFlag :: [Flag] -> Int
 findDepthFlag [] = 4
 findDepthFlag (Depth d:xs) = read d :: Int
 findDepthFlag (x:xs) = findDepthFlag xs
-
-findAllBestMoves :: [GameState] -> IO ()

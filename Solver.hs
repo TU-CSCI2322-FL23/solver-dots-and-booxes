@@ -29,12 +29,12 @@ bestMove gs@(trn, mvs, _) =
 
 
 -- Have changed the return type to Rational from Integer. If game dimensions in GS then it could be done with Int
-rateGame :: GameState -> Rational
+rateGame :: GameState -> Int
 rateGame gs@(_,_,bxs) = case checkWinner gs of
                             Nothing -> let (p1Boxes, p2Boxes) = partition (\(Box point player) -> player == PlayerOne) bxs
                                            p1Score = length p1Boxes
                                            p2Score = length p2Boxes
-                                        in toRational (p1Score - p2Score)
-                            Just (Winner PlayerOne) -> infinity
-                            Just (Winner PlayerTwo) -> -infinity
-                        
+                                        in p1Score - p2Score
+                            Just (Winner PlayerOne) -> length bxs * 10
+                            Just (Winner PlayerTwo) -> length bxs * (-10)
+

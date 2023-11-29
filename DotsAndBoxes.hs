@@ -5,9 +5,9 @@ import Data.Maybe (catMaybes, mapMaybe, fromMaybe)
 data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
 
 type Point = (Int, Int)
-data Direction = Rght | Down deriving (Eq, Show)
+data Direction = Rght | Down deriving (Eq, Show, Ord)
 type Line = (Point, Direction)
-newtype Move = Move Line deriving (Eq, Show)
+newtype Move = Move Line deriving (Eq, Show, Ord)
 
 data Box = Box Point Player deriving (Eq, Show) -- top left point of box and who controls it
 

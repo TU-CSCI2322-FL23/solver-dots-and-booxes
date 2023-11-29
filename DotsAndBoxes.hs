@@ -1,5 +1,5 @@
 module DotsAndBoxes where
-import Data.List (intercalate, partition)
+import Data.List (partition)
 import Data.Maybe (catMaybes, mapMaybe, fromMaybe)
 
 data Player = PlayerOne | PlayerTwo deriving (Eq, Show)

@@ -5,15 +5,16 @@ import Solver
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Data.List.Extra (splitOn)
+import System.Console.GetOpt
 
-main :: IO ()
-main = do args <- getArgs
-          let fname = if null args then "tests/two_from_end.txt" else head args
-          contents <- readFile fname
-          let listOfGames = map readGame $ splitOn "\n" contents
-          putStrLn ""
-          printAllGames listOfGames 1
+data Flag = Win | Depth String | Help deriving (Show, Eq)
+options :: [OptDescr Flag]
+options = [ Option ['w'] ["winner"] (NoArg Win) "Will fully run through the game and print the best move."
+          , Option ['h'] ["help"] (NoArg Help) "Will give you a help menu."
+          , Option ['d'] ["depth"] (ReqArg Depth "<num>") "Will allow you to change the depth of the searching to <num>, default value is 4."
+          ]
 
+depth = 4 :: Int
 printAllGames :: [Maybe GameState] -> Int -> IO ()
 printAllGames [] n = do putStrLn "Good luck!"
                         putStrLn ""
@@ -51,3 +52,24 @@ prompt :: String -> IO String
 prompt question = do putStrLn question
                      hFlush stdout
                      getLine
+
+
+main :: IO ()
+main = do args <- getArgs
+          let (flags, inputs, errors) = getOpt Permute options args
+          if Help `elem` flags || not (null errors) then putStrLn $ usageInfo "Dots And Boxes [options] [filename]\nDots and Boxes project." options
+          else do 
+                    let fname = if null inputs then "tests/two_from_end.txt" else head inputs
+                    let depth = findDepthFlag flags
+                    contents <- readFile fname
+                    let listOfGames = map readGame $ splitOn "\n" contents
+                    if Win `elem` flags then printAllGames listOfGames 1 
+          else do
+                    putStrLn "PUT OTHER FLAGS HERE!!!!!"
+
+findDepthFlag :: [Flag] -> Int
+findDepthFlag [] = 4
+findDepthFlag (Depth d:xs) = read d :: Int
+findDepthFlag (x:xs) = findDepthFlag xs
+
+findAllBestMoves :: [GameState] -> IO ()

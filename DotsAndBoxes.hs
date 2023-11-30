@@ -31,12 +31,12 @@ findLegalMoves :: GameState -> [Move]
 findLegalMoves (trn, mvs, bxs,sz) = let allMoves = uncurry createAllMoves sz
                                  in [ move | move <- allMoves, move `notElem` mvs ]
 
-checkBounds :: Move -> Bool
-checkBounds (Move ((x, y), Rght)) = x >= 0 && x < columns && y >= 0 && y <= rows
-checkBounds (Move ((x, y), Down)) = x >= 0 && x <= columns && y >= 0 && y < rows
+checkBounds :: GameState -> Move -> Bool
+checkBounds gs@(_,_,_,sz) (Move ((x, y), Rght)) = x >= 0 && x < snd sz && y >= 0 && y <= fst sz
+checkBounds gs@(_,_,_,sz) (Move ((x, y), Down)) = x >= 0 && x <= snd sz && y >= 0 && y < fst sz
 
 checkLegal :: GameState -> Move -> Bool
-checkLegal (trn, mvs, bxs,_) move = move `notElem` mvs && checkBounds move
+checkLegal gs@(_, mvs, _,_) move = move `notElem` mvs && checkBounds gs move
 
 turnSwap :: Player -> Player
 turnSwap trn = if trn == PlayerOne then PlayerTwo else PlayerOne

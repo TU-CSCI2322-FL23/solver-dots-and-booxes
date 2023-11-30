@@ -23,6 +23,13 @@ rows = 4 :: Int
 columns = 5 :: Int
 numBoxes = rows * columns :: Int
 
+-- debug methods to make a sample game and keep running moves on it unit test sort of
+startGame :: Int -> Int -> GameState
+startGame row col= (PlayerOne,[],[],(row,col))
+
+temp :: Maybe GameState -> GameState
+temp a = head (catMaybes [a])
+
 createAllMoves :: Int -> Int -> [Move]
 createAllMoves m n = [ Move ((x, y), Rght) | x <- [0..n-1], y <- [0..m] ]
                   ++ [ Move ((x, y), Down) | x <- [0..n], y <- [0..m-1] ]
@@ -76,7 +83,7 @@ makeMove game@(trn, mvs, bxs,sz) move@(Move ((x, y), Down)) =
     else Nothing
 
 checkWinner :: GameState -> Maybe Winner
-checkWinner game@(trn, mvs, bxs,_) = if length bxs >= numBoxes
+checkWinner game@(_, _, bxs,sz) = if length bxs >= product sz
                                    then Just $ calculateScore game
                                    else Nothing
 

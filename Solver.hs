@@ -36,7 +36,10 @@ rateGame gs@(_,_,bxs,sz) = case checkWinner gs of
                                            p2Score = length p2Boxes
                                         in p1Score - p2Score
                             Just (Winner PlayerOne) -> 2 * product sz 
-                            Just (Winner PlayerTwo) -> -2 * product sz 
+                            Just (Winner PlayerTwo) -> -2 * product sz
+                            Just Draw -> 0 
+
+
 
 -- when rating_mvs is calculated the correct working banks on the fact that whenever a move from the list of legalmoves is made it wouldn't return a Nothing. If it returns nothing zipping the rating to moves wouldn't work because the length of ratings might be less then length of moves.
 whoMightWin :: GameState -> Int -> (Int, Maybe Move)
@@ -56,7 +59,8 @@ whoMightWin gs@(trn,_,_,sz) depth =
                           |otherwise = iterator xs ans
                       in iterator ratings (head ratings)
           Just (Winner PlayerOne) -> 2 * product sz 
-          Just (Winner PlayerTwo) -> -2 * product sz 
+          Just (Winner PlayerTwo) -> -2 * product sz
+          Just Draw -> 0 
 
     in case checkWinner gs of
       Nothing -> 
@@ -75,3 +79,4 @@ whoMightWin gs@(trn,_,_,sz) depth =
         in (fst format_var, Just (snd format_var))
       Just (Winner PlayerOne) -> (rateGame gs, Nothing)
       Just (Winner PlayerTwo) -> (rateGame gs, Nothing)
+      Just Draw -> (rateGame gs, Nothing)

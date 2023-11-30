@@ -1,6 +1,6 @@
 module Solver where
 import DotsAndBoxes
-import Data.Maybe (mapMaybe, fromMaybe)
+import Data.Maybe (mapMaybe, fromMaybe, catMaybes)
 import GHC.Real (infinity)
 import Data.List (partition)
 import Control.Comonad.Store (ComonadStore(pos))
@@ -80,3 +80,17 @@ whoMightWin gs@(trn,_,_,sz) depth =
       Just (Winner PlayerOne) -> (rateGame gs, Nothing)
       Just (Winner PlayerTwo) -> (rateGame gs, Nothing)
       Just Draw -> (rateGame gs, Nothing)
+
+-- debug methods to make a sample game and keep running moves on it unit test sort of
+startGame :: Int -> Int -> GameState
+startGame row col= (PlayerOne,[],[],(row,col))
+
+temp :: Maybe GameState -> GameState
+temp a = head (catMaybes [a])
+
+-- Unit Tests
+-- a = startGame 1 2
+-- ghci> b = temp(makeMove a (head $ findLegalMoves a))
+-- ghci> c = temp(makeMove b (head $ findLegalMoves b))
+-- ghci> d = temp(makeMove c (head $ findLegalMoves c))
+-- ghci> e = temp(makeMove d (head $ findLegalMoves d))

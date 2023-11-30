@@ -1,6 +1,6 @@
 module DotsAndBoxes where
 import Data.List (partition)
-import Data.Maybe (catMaybes, mapMaybe, fromMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 
 data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
 
@@ -23,12 +23,6 @@ rows = 4 :: Int
 columns = 5 :: Int
 numBoxes = rows * columns :: Int
 
--- debug methods to make a sample game and keep running moves on it unit test sort of
-startGame :: Int -> Int -> GameState
-startGame row col= (PlayerOne,[],[],(row,col))
-
-temp :: Maybe GameState -> GameState
-temp a = head (catMaybes [a])
 
 createAllMoves :: Int -> Int -> [Move]
 createAllMoves m n = [ Move ((x, y), Rght) | x <- [0..n-1], y <- [0..m] ]

@@ -28,8 +28,7 @@ readMoves str = mapM readMove (splitOn "," str)
 readBoxes :: String -> Maybe [Box]
 readBoxes str = mapM readBox (splitOn "," str)
 
--- ASK FOGARTY!!!!        
--- gives "no parse" error if xstr or ystr cannot be read, appropriate exception?? 
+
 readMove :: String -> Maybe Move
 readMove [xchar, ychar, dchar] = do x <- readMaybe [xchar] :: Maybe Int
                                     y <- readMaybe [ychar] :: Maybe Int
@@ -39,6 +38,17 @@ readMove [xchar, ychar, dchar] = do x <- readMaybe [xchar] :: Maybe Int
                                        readDir 'R' = Just Rght
                                        readDir  _  = Nothing
 readMove str = Nothing
+
+readUserMove :: String -> Maybe Move
+readUserMove [openP, xchar, c1, ychar, c2, dchar, closedP] 
+    = do x <- readMaybe [xchar] :: Maybe Int
+         y <- readMaybe [ychar] :: Maybe Int
+         dir <- readDir dchar
+         Just $ Move ((x, y), dir)
+      where readDir 'd' = Just Down
+            readDir 'r' = Just Rght
+            readDir  _  = Nothing
+readUserMove _ = Nothing
 
 readBox :: String -> Maybe Box
 readBox [xchar, ychar, pchar] = do x <- readMaybe [xchar] :: Maybe Int

@@ -1,11 +1,12 @@
 module Main where
 import DotsAndBoxes
-import ReadAndShow (readGame, showGame, printMove, prettyShow)
+import ReadAndShow (readGame, showGame, printMove, prettyShow, readMove, readUserMove, showMove)
 import Solver
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Data.List.Extra (splitOn)
 import System.Console.GetOpt
+import Text.Read (readMaybe)
 
 data Flag = Win | Depth String | Help | Verbose | Interactive | Mv String deriving (Show, Eq)
 options :: [OptDescr Flag]
@@ -59,17 +60,38 @@ prompt question = do putStrLn question
 main :: IO ()
 main = do args <- getArgs
           let (flags, inputs, errors) = getOpt Permute options args
-          if Help `elem` flags || not (null errors) then putStrLn $ usageInfo "Dots And Boxes [options] [filename]\nDots and Boxes project." options
-          else do 
-                    let fname = if null inputs then "tests/two_from_end.txt" else head inputs
-                    let depth = findDepthFlag flags
-                    contents <- readFile fname
-                    let listOfGames = map readGame $ splitOn "\n" contents
-                    if Win `elem` flags then printAllGames listOfGames 1 
-                         else do
-                                   putStrLn "PUT OTHER FLAGS HERE!!!!!"
+          if Help `elem` flags || not (null errors) 
+          then putStrLn $ usageInfo "./DotsAndBoxes [options] [filename]\nOptions:" options
+          else do let fname = if null inputs then "tests/two_from_end.txt" else head inputs 
+                  contents <- readFile fname
+                  let depth = findDepthFlag flags
+                  let move = findMoveFlag flags
+                  let game = readGame contents
+                  case game of 
+                    Nothing -> error "Invalid game file!"
+                    Just gm -> if Win `elem` flags then putBestMove gm
+                               else case move of
+                                      Just mv -> do case makeMove gm mv of
+                                                       Nothing -> error "Invalid move!"
+                                                       Just newGame -> if Verbose `elem` flags 
+                                                                       then prettyShow newGame
+                                                                       else putStrLn $ showGame newGame
+                                      Nothing -> putStrLn "Unfinished."
+                                   --    Nothing -> do let (rating, goodMove) = whoMightWin gm depth
+                                   --                  case goodMove of 
+                                   --                     Nothing -> putStrLn "The game is finished."
+                                   --                     Just gmv -> putStrLn $ showMove gmv
+
+
+
 
 findDepthFlag :: [Flag] -> Int
 findDepthFlag [] = 4
 findDepthFlag (Depth d:xs) = read d :: Int
 findDepthFlag (x:xs) = findDepthFlag xs
+
+findMoveFlag :: [Flag] -> Maybe Move 
+findMoveFlag [] = Nothing
+findMoveFlag (Mv m:xs) = readUserMove m
+
+findMoveFlag (x:xs) = findMoveFlag xs

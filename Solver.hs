@@ -2,6 +2,7 @@ module Solver where
 import DotsAndBoxes
 import Data.Maybe (mapMaybe, fromMaybe, catMaybes)
 import Data.List (partition)
+import Text.Libyaml (Style(Plain))
 
 type Rating = Int
 
@@ -86,6 +87,13 @@ whoMightWin gs@(trn, _, _, (rows,cols)) depth =
 temp :: Maybe GameState -> GameState
 temp a = head (catMaybes [a])
 
+simulateGame :: Int -> GameState -> GameState
+simulateGame 0 gs = gs
+simulateGame mvs gs = case checkWinner gs of
+  Nothing -> simulateGame (mvs-1) (temp(makeMove gs (head $ findLegalMoves gs)))
+  Just(Winner PlayerOne) -> gs
+  Just(Winner PlayerTwo) -> gs
+  Just Draw -> gs
 -- Unit Tests
 -- a = startGame 1 2
 -- b = temp(makeMove a (head $ findLegalMoves a))

@@ -20,7 +20,6 @@ options = [ Option ['w'] ["winner"] (NoArg Win) "Will fully run through the game
 
 printAllGames :: [Maybe GameState] -> Int -> IO ()
 printAllGames [] n = do putStrLn "Good luck!"
-                        putStrLn ""
 printAllGames (x:xs) n = do putStrLn ("Game " ++ show n ++ ":")
                             case x of
                                  Nothing -> do putStrLn "This game is invalid!"

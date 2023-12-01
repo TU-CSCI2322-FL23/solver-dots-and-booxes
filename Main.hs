@@ -7,15 +7,16 @@ import System.Environment (getArgs)
 import Data.List.Extra (splitOn)
 import System.Console.GetOpt
 import Text.Read (readMaybe)
+import Data.Maybe (isJust, fromJust)
 
 data Flag = Win | Depth String | Help | Verbose | Interactive | Mv String deriving (Show, Eq)
 options :: [OptDescr Flag]
 options = [ Option ['w'] ["winner"] (NoArg Win) "Will fully run through the game and print the best move."
           , Option ['h'] ["help"] (NoArg Help) "Will give you a help menu."
           , Option ['d'] ["depth"] (ReqArg Depth "<num>") "Will allow you to change the depth of the searching to <num>, default value is 4."
-          , Option ['m'] ["move"]  (ReqArg Mv "<move>") "Will place move <move> and print out the new board state."
-          , Option ['v'] ["verbose"] (NoArg Verbose) "Outputs the move and a description of how good it is (win, lose, tie)"
-          , Option ['i'] ["interactive"] (NoArg Interactive) "Start a new game against the computer"
+          , Option ['m'] ["move"]  (ReqArg Mv "<move>") "Will place move <move> and print out the new board state.\n Move Format: \"(x,y,dir)\"\nx/y: integer\ndir: one of 'u', 'd', 'l', 'r'"
+          , Option ['v'] ["verbose"] (NoArg Verbose) "Combine with -m to show the board and output a description of how good the move is."
+          , Option ['i'] ["interactive"] (NoArg Interactive) "Start a new game against the computer."
           ]
 
 printAllGames :: [Maybe GameState] -> Int -> IO ()
@@ -55,42 +56,52 @@ prompt question = do putStrLn question
                      hFlush stdout
                      getLine
 
+makeMoveIO :: GameState -> Move -> Bool -> IO ()
+makeMoveIO game move verbose = 
+     case makeMove game move of
+     Nothing -> putStrLn "That move is invalid! Try again."
+     Just newGame -> if verbose
+                     then do prettyShow newGame
+                             case checkWinner newGame of
+                                  Nothing -> putStrLn $ "This move results in a game rating of " ++ show (rateGame newGame) ++ "."
+                                  Just (Winner PlayerOne) -> putStrLn "This move results in player one winning."
+                                  Just (Winner PlayerTwo) -> putStrLn "This move results in player two winning."
+                                  Just Draw -> putStrLn "This move results in a draw."
+                     else putStrLn $ showGame newGame
+
 
 main :: IO ()
 main = do args <- getArgs
           let (flags, inputs, errors) = getOpt Permute options args
           if Help `elem` flags || not (null errors) 
           then putStrLn $ usageInfo "./DotsAndBoxes [options] [filename]\nOptions:" options
-          else do let fname = if null inputs then "tests/two_from_end.txt" else head inputs 
+          else do let fname = if null inputs then "tests/two_from_end.txt" else head inputs -- safe use of head!
                   contents <- readFile fname
                   let depth = findDepthFlag flags
                   let move = findMoveFlag flags
-                  let game = readGame contents
-                  case game of 
+                  let isVerbose = Verbose `elem` flags
+                  case readGame contents of 
                     Nothing -> error "Invalid game file!"
-                    Just gm -> if Win `elem` flags then putBestMove gm
-                               else case move of
-                                      Just mv -> do case makeMove gm mv of
-                                                       Nothing -> error "Invalid move!"
-                                                       Just newGame -> if Verbose `elem` flags 
-                                                                       then prettyShow newGame
-                                                                       else putStrLn $ showGame newGame
-                                      Nothing -> putStrLn "Unfinished."
-                                   --    Nothing -> do let (rating, goodMove) = whoMightWin gm depth
-                                   --                  case goodMove of 
-                                   --                     Nothing -> putStrLn "The game is finished."
-                                   --                     Just gmv -> putStrLn $ showMove gmv
-
-
-
+                    Just game -> let action | Win `elem` flags = putBestMove game
+                                            | not $ null move = case move of 
+                                                                     [Just mv] -> makeMoveIO game mv isVerbose    
+                                                                     _ -> putStrLn "Cannot read move!\nSee help (-h or --help) for move format."                    
+                                            | Interactive `elem` flags = putStrLn "Work in progess!"
+                                            | otherwise = case goodMove of
+                                                               Nothing -> putStrLn "There is no move to make."
+                                                               Just mv -> putStrLn ("A good move to make is " ++ printMove mv)
+                                                          where (rating, goodMove) = whoMightWin game depth
+                                 in action
 
 findDepthFlag :: [Flag] -> Int
-findDepthFlag [] = 4
-findDepthFlag (Depth d:xs) = read d :: Int
+findDepthFlag [] = 4 -- default depth
+findDepthFlag (Depth d:xs) 
+     | depth < 0 = 0
+     | otherwise = depth
+     where depth = read d :: Int
 findDepthFlag (x:xs) = findDepthFlag xs
 
-findMoveFlag :: [Flag] -> Maybe Move 
-findMoveFlag [] = Nothing
-findMoveFlag (Mv m:xs) = readUserMove m
-
+findMoveFlag :: [Flag] -> [Maybe Move] 
+findMoveFlag [] = []
+findMoveFlag (Mv m:xs) = [readUserMove m]
 findMoveFlag (x:xs) = findMoveFlag xs

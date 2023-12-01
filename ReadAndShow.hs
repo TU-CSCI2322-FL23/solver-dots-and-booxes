@@ -51,15 +51,17 @@ readMove str = case splitOn "," str of
                                               readDir  _  = Nothing
                _ -> Nothing
 
+-- not satisfied 
 readUserMove :: String -> Maybe Move
-readUserMove [openP, xchar, c1, ychar, c2, dchar, closedP] 
+readUserMove ['(', xchar, ',', ychar, ',', dchar, ')'] 
     = do x <- readMaybe [xchar] :: Maybe Int
          y <- readMaybe [ychar] :: Maybe Int
-         dir <- readDir dchar
-         Just $ Move ((x, y), dir)
-      where readDir 'd' = Just Down
-            readDir 'r' = Just Rght
-            readDir  _  = Nothing
+         case dchar of 
+          'd' -> Just $ Move ((x, y), Down)
+          'r' -> Just $ Move ((x, y), Rght)
+          'u' -> Just $ Move ((x, y-1), Down)
+          'l' -> Just $ Move ((x-1, y), Rght)
+          _   -> Nothing
 readUserMove _ = Nothing
 
 readBox :: String -> Maybe Box

@@ -14,10 +14,8 @@ options = [ Option ['w'] ["winner"] (NoArg Win) "Will fully run through the game
           , Option ['d'] ["depth"] (ReqArg Depth "<num>") "Will allow you to change the depth of the searching to <num>, default value is 4."
           ]
 
-depth = 4 :: Int
 printAllGames :: [Maybe GameState] -> Int -> IO ()
 printAllGames [] n = do putStrLn "Good luck!"
-                        putStrLn ""
 printAllGames (x:xs) n = do putStrLn ("Game " ++ show n ++ ":")
                             case x of
                                  Nothing -> do putStrLn "This game is invalid!"
@@ -64,12 +62,10 @@ main = do args <- getArgs
                     contents <- readFile fname
                     let listOfGames = map readGame $ splitOn "\n" contents
                     if Win `elem` flags then printAllGames listOfGames 1 
-          else do
-                    putStrLn "PUT OTHER FLAGS HERE!!!!!"
+                    else do
+                              putStrLn "PUT OTHER FLAGS HERE!!!!!"
 
 findDepthFlag :: [Flag] -> Int
 findDepthFlag [] = 4
 findDepthFlag (Depth d:xs) = read d :: Int
 findDepthFlag (x:xs) = findDepthFlag xs
-
-findAllBestMoves :: [GameState] -> IO ()

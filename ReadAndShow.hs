@@ -117,7 +117,7 @@ showWinner (Winner PlayerOne) = "Player one"
 showWinner (Winner PlayerTwo) = "Player two"
 
 printMove :: Move -> String
-printMove (Move ((x, y), dir)) = "(" ++ show x ++ ", " ++ show y ++ ")" ++ " in the direction " ++ showDirection dir
+printMove (Move ((x, y), dir)) = "(" ++ show (x+1) ++ ", " ++ show (y+1) ++ ")" ++ " in the direction " ++ showDirection dir
 
 prettyShow :: GameState -> IO ()
 prettyShow game = let lns = printGameBoard game 

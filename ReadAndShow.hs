@@ -53,16 +53,17 @@ readMove str = case splitOn "," str of
 
 -- not satisfied 
 readUserMove :: String -> Maybe Move
-readUserMove ['(', xchar, ',', ychar, ',', dchar, ')'] 
-    = do x <- readMaybe [xchar] :: Maybe Int
-         y <- readMaybe [ychar] :: Maybe Int
-         case dchar of 
-          'd' -> Just $ Move ((x, y), Down)
-          'r' -> Just $ Move ((x, y), Rght)
-          'u' -> Just $ Move ((x, y-1), Down)
-          'l' -> Just $ Move ((x-1, y), Rght)
-          _   -> Nothing
-readUserMove _ = Nothing
+readUserMove str
+    = case splitOn "," str of 
+      [xchar, ychar, dchar] -> do x <- readMaybe xchar :: Maybe Int
+                                  y <- readMaybe ychar :: Maybe Int
+                                  case dchar of 
+                                    "d" -> Just $ Move ((x-1, y-1), Down)
+                                    "r" -> Just $ Move ((x-1, y-1), Rght)
+                                    "u" -> Just $ Move ((x-1, y-2), Down)
+                                    "l" -> Just $ Move ((x-2, y-1), Rght)
+                                    _   -> Nothing
+      _ -> Nothing
 
 readBox :: String -> Maybe Box
 readBox str = case splitOn "," str of 

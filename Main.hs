@@ -7,26 +7,41 @@ import System.Environment (getArgs)
 import Data.List.Extra (splitOn)
 import System.Console.GetOpt
 import Text.Read (readMaybe)
-import Data.Maybe (isJust, fromJust)
 
 data Flag = Win | Depth String | Help | Verbose | Interactive | Mv String deriving (Show, Eq)
 options :: [OptDescr Flag]
 options = [ Option ['w'] ["winner"] (NoArg Win) "Will fully run through the game and print the best move."
           , Option ['h'] ["help"] (NoArg Help) "Will give you a help menu."
-          , Option ['d'] ["depth"] (ReqArg Depth "<num>") "Will allow you to change the depth of the searching to <num>, default value is 4."
-          , Option ['m'] ["move"]  (ReqArg Mv "<move>") "Will place move <move> and print out the new board state.\n Move Format: \"(x,y,dir)\"\nx/y: integer\ndir: one of 'u', 'd', 'l', 'r'"
+          , Option ['d'] ["depth"] (ReqArg Depth "<num>") "Will allow you to change the depth of the searching to <num>, default value is 3."
+          , Option ['m'] ["move"]  (ReqArg Mv "<move>") "Will place move <move> and print out the new board state.\nMove Format: \"x,y,dir\"\nx/y: integer\ndir: one of 'u', 'd', 'l', 'r'"
           , Option ['v'] ["verbose"] (NoArg Verbose) "Combine with -m to show the board and output a description of how good the move is."
           , Option ['i'] ["interactive"] (NoArg Interactive) "Start a new game against the computer."
           ]
+          
+main :: IO ()
+main = do args <- getArgs
+          let (flags, inputs, errors) = getOpt Permute options args
+          if Help `elem` flags || not (null errors) 
+          then putStrLn $ usageInfo "./DotsAndBoxes [options] [filename]\nOptions:" options
+          else do let fname = if null inputs then "gamefiles/empty4x5.txt" else head inputs -- safe use of head!
+                  contents <- readFile fname
+                  let depth = findDepthFlag flags
+                  let move = findMoveFlag flags
+                  let isVerbose = Verbose `elem` flags
+                  case readGame contents of 
+                       Nothing -> error "Invalid game file!"
+                       Just game -> let action | Win `elem` flags = putBestMove game
+                                               | not $ null move = case move of 
+                                                                        [Just mv] -> makeMoveIO game mv isVerbose    
+                                                                        _ -> putStrLn "Cannot read move!\nSee help (-h or --help) for move format."                    
+                                               | Interactive `elem` flags = do prettyShow game
+                                                                               playComputer game depth
+                                               | otherwise = case goodMove of
+                                                                  Nothing -> putStrLn "There is no move to make."
+                                                                  Just mv -> putStrLn ("A good move to make is " ++ printMove mv)
+                                                             where (rating, goodMove) = whoMightWin game depth
+                                    in action
 
-printAllGames :: [Maybe GameState] -> Int -> IO ()
-printAllGames [] n = do putStrLn "Good luck!"
-printAllGames (x:xs) n = do putStrLn ("Game " ++ show n ++ ":")
-                            case x of
-                                 Nothing -> do putStrLn "This game is invalid!"
-                                               printAllGames xs (n+1)
-                                 Just game -> do putBestMove game
-                                                 printAllGames xs (n+1)
 
 writeGame :: GameState -> FilePath -> IO ()
 writeGame game file = writeFile file (showGame game)
@@ -99,32 +114,8 @@ playComputer game@(PlayerTwo, _, _, _) depth =
                                         Just newGame -> do prettyShow newGame
                                                            playComputer newGame depth
 
-main :: IO ()
-main = do args <- getArgs
-          let (flags, inputs, errors) = getOpt Permute options args
-          if Help `elem` flags || not (null errors) 
-          then putStrLn $ usageInfo "./DotsAndBoxes [options] [filename]\nOptions:" options
-          else do let fname = if null inputs then "gamefiles/empty4x5.txt" else head inputs -- safe use of head!
-                  contents <- readFile fname
-                  let depth = findDepthFlag flags
-                  let move = findMoveFlag flags
-                  let isVerbose = Verbose `elem` flags
-                  case readGame contents of 
-                       Nothing -> error "Invalid game file!"
-                       Just game -> let action | Win `elem` flags = putBestMove game
-                                               | not $ null move = case move of 
-                                                                        [Just mv] -> makeMoveIO game mv isVerbose    
-                                                                        _ -> putStrLn "Cannot read move!\nSee help (-h or --help) for move format."                    
-                                               | Interactive `elem` flags = do prettyShow game
-                                                                               playComputer game depth
-                                               | otherwise = case goodMove of
-                                                                  Nothing -> putStrLn "There is no move to make."
-                                                                  Just mv -> putStrLn ("A good move to make is " ++ printMove mv)
-                                                             where (rating, goodMove) = whoMightWin game depth
-                                    in action
-
 findDepthFlag :: [Flag] -> Int
-findDepthFlag [] = 4 -- default depth
+findDepthFlag [] = 3 -- default depth
 findDepthFlag (Depth d:xs) 
      | depth < 0 = 0
      | otherwise = depth

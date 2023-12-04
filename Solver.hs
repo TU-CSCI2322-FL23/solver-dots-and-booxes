@@ -2,6 +2,7 @@ module Solver where
 import DotsAndBoxes
 import Data.Maybe (mapMaybe, fromMaybe, catMaybes)
 import Data.List (partition)
+import Text.Libyaml (Style(Plain))
 
 type Rating = Int
 
@@ -41,10 +42,10 @@ rateGame gs@(_, _, bxs, (rows, cols)) = case checkWinner gs of
 
 -- when rating_mvs is calculated the correct working banks on the fact that whenever a move from the list of legalmoves is made it wouldn't return a Nothing. If it returns nothing zipping the rating to moves wouldn't work because the length of ratings might be less then length of moves.
 whoMightWin :: GameState -> Int -> (Rating, Maybe Move)
-whoMightWin gs@(trn, _, _, sz) depth = 
+whoMightWin gs@(trn, _, _, (rows,cols)) depth = 
     let recur_depth :: Int -> GameState -> Int
         recur_depth 0 xgs = rateGame xgs
-        recur_depth depth xgs@(xtrn,_,_,xsz) = case checkWinner xgs of
+        recur_depth depth xgs@(xtrn,_,_,(xrows,xcols)) = case checkWinner xgs of
           Nothing -> let possibleGS =  mapMaybe (makeMove xgs) (findLegalMoves xgs)
                          ratings = map (recur_depth (depth-1)) possibleGS
                          iterator :: [Int] -> Int -> Int
@@ -84,9 +85,16 @@ whoMightWin gs@(trn, _, _, sz) depth =
 temp :: Maybe GameState -> GameState
 temp a = head (catMaybes [a])
 
+simulateGame :: Int -> GameState -> GameState
+simulateGame 0 gs = gs
+simulateGame mvs gs = case checkWinner gs of
+  Nothing -> simulateGame (mvs-1) (temp(makeMove gs (head $ findLegalMoves gs)))
+  Just(Winner PlayerOne) -> gs
+  Just(Winner PlayerTwo) -> gs
+  Just Draw -> gs
 -- Unit Tests
 -- a = startGame 1 2
--- ghci> b = temp(makeMove a (head $ findLegalMoves a))
--- ghci> c = temp(makeMove b (head $ findLegalMoves b))
--- ghci> d = temp(makeMove c (head $ findLegalMoves c))
--- ghci> e = temp(makeMove d (head $ findLegalMoves d))
+-- b = temp(makeMove a (head $ findLegalMoves a))
+-- c = temp(makeMove b (head $ findLegalMoves b))
+-- d = temp(makeMove c (head $ findLegalMoves c))
+-- e = temp(makeMove d (head $ findLegalMoves d))

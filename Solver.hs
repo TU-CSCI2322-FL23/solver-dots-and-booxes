@@ -2,8 +2,6 @@ module Solver where
 import DotsAndBoxes
 import Data.Maybe (mapMaybe, fromMaybe, catMaybes)
 import Data.List (partition)
-import Text.Libyaml (Style(Plain))
-import Distribution.Simple.Utils (xargs)
 
 type Rating = Int
 

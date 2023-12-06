@@ -26,7 +26,6 @@ readSize str = case splitOn "," str of
                                     Just (rows, cols)
                _ -> Nothing
 
-
 readPlayer :: String -> Maybe Player
 readPlayer str = case str of 
                  "P1" -> Just PlayerOne
@@ -39,7 +38,6 @@ readMoves str = mapM readMove (splitOn "/" str)
 readBoxes :: String -> Maybe [Box]
 readBoxes str = mapM readBox (splitOn "/" str)
 
-
 readMove :: String -> Maybe Move
 readMove str = case splitOn "," str of
                [xchar, ychar, dchar] -> do x <- readMaybe xchar :: Maybe Int
@@ -51,7 +49,6 @@ readMove str = case splitOn "," str of
                                               readDir  _  = Nothing
                _ -> Nothing
 
--- not satisfied 
 readUserMove :: String -> Maybe Move
 readUserMove str
     = case splitOn "," str of 
@@ -141,7 +138,7 @@ horizontalString (trn, mvs, bxs, sz) (x, y) = if Move ((x, y), Rght) `elem` mvs 
 
 verticalString :: GameState -> Point -> String
 verticalString (trn, mvs, bxs, sz) (x, y) = if Move ((x, y), Down) `elem` mvs
-                                        then if Box (x, y) PlayerOne `elem` bxs then "|" ++ "1"
-                                             else if Box (x, y) PlayerTwo `elem` bxs then "|" ++ "2"
-                                             else "| "
-                                        else "  "
+                                            then if Box (x, y) PlayerOne `elem` bxs then "|" ++ "1"
+                                                 else if Box (x, y) PlayerTwo `elem` bxs then "|" ++ "2"
+                                                 else "| "
+                                            else "  "

@@ -1,12 +1,11 @@
 module Main where
 import DotsAndBoxes
-import ReadAndShow (readGame, showGame, printMove, prettyShow, readMove, readUserMove, showMove)
 import Solver
+import ReadAndShow (readGame, showGame, printMove, prettyShow, readMove, readUserMove, showMove)
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import Data.List.Extra (splitOn)
 import System.Console.GetOpt
-import Text.Read (readMaybe)
 
 data Flag = Win | Depth String | Help | Verbose | Interactive | Mv String deriving (Show, Eq)
 options :: [OptDescr Flag]
@@ -115,7 +114,7 @@ playComputer game@(PlayerTwo, _, _, _) depth =
                                                            playComputer newGame depth
 
 findDepthFlag :: [Flag] -> Int
-findDepthFlag [] = 3 -- default depth
+findDepthFlag [] = 4 -- default depth
 findDepthFlag (Depth d:xs) 
      | depth < 0 = 0
      | otherwise = depth

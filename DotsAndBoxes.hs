@@ -1,6 +1,5 @@
 module DotsAndBoxes where
 import Data.List (partition)
-import Data.Maybe (mapMaybe, fromMaybe)
 
 data Player = PlayerOne | PlayerTwo deriving (Eq, Show)
 
@@ -37,7 +36,9 @@ checkLegal :: GameState -> Move -> Bool
 checkLegal gs@(trn, mvs, bxs, sz) move = move `notElem` mvs && checkBounds gs move
 
 turnSwap :: Player -> Player
-turnSwap trn = if trn == PlayerOne then PlayerTwo else PlayerOne
+turnSwap trn = if trn == PlayerOne 
+               then PlayerTwo 
+               else PlayerOne
 
 subset :: Eq a => [a] -> [a] -> Bool
 subset [] lst = True
@@ -74,9 +75,10 @@ makeMove game@(trn, mvs, bxs, sz) move@(Move ((x, y), Down)) =
     else Nothing
 
 checkWinner :: GameState -> Maybe Winner
-checkWinner game@(trn, mvs, bxs, (rows, cols)) = if length bxs >= rows * cols
-                                       then Just $ calculateScore game
-                                       else Nothing
+checkWinner game@(trn, mvs, bxs, (rows, cols)) = 
+  if length bxs >= rows * cols
+  then Just $ calculateScore game
+  else Nothing
 
 calculateScore :: GameState -> Winner
 calculateScore (trn, mvs, bxs, sz)

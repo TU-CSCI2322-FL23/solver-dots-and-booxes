@@ -2,7 +2,6 @@ module Solver where
 import DotsAndBoxes
 import Data.Maybe (mapMaybe, fromMaybe, catMaybes)
 import Data.List (partition)
-import Text.Libyaml (Style(Plain))
 
 type Rating = Int
 
@@ -29,7 +28,6 @@ bestMove gs@(trn, _, _, _) =
                                        Draw -> aux xs (Just x)
   in aux possibleGS Nothing
 
-
 rateGame :: GameState -> Rating
 rateGame gs@(_, _, bxs, (rows, cols)) = case checkWinner gs of
                               Nothing -> let (p1Boxes, p2Boxes) = partition (\(Box point player) -> player == PlayerOne) bxs
@@ -40,42 +38,31 @@ rateGame gs@(_, _, bxs, (rows, cols)) = case checkWinner gs of
                               Just (Winner PlayerTwo) -> (-2) * rows * cols
                               Just Draw -> 0 
 
--- when rating_mvs is calculated the correct working banks on the fact that whenever a move from the list of legalmoves is made it wouldn't return a Nothing. If it returns nothing zipping the rating to moves wouldn't work because the length of ratings might be less then length of moves.
-whoMightWin :: GameState -> Int -> (Rating, Maybe Move)
-whoMightWin gs@(trn, _, _, (rows, cols)) depth = 
-    let recur_depth :: Int -> GameState -> Int
-        recur_depth 0 xgs = rateGame xgs
-        recur_depth depth xgs@(xtrn,_,_,(xrows,xcols)) = case checkWinner xgs of
-          Nothing -> let possibleGS =  mapMaybe (makeMove xgs) (findLegalMoves xgs)
-                         ratings = map (recur_depth (depth-1)) possibleGS
-                         iterator :: [Int] -> Int -> Int
-                         iterator [] ans = ans
-                         iterator (x:xs) ans
-                          | xtrn == PlayerOne && x == 2 * rows * cols  = x
-                          | xtrn == PlayerTwo && x == (-2) * xrows * xcols = x
-                          | xtrn == PlayerOne && x > ans = iterator xs x
-                          | xtrn == PlayerTwo && x < ans = iterator xs x
-                          | otherwise = iterator xs ans
-                      in iterator ratings (head ratings)
-          Just (Winner PlayerOne) -> 2 * rows * cols
-          Just (Winner PlayerTwo) -> (-2) * rows * cols
-          Just Draw -> 0 
+findLargestRating :: GameState -> [(Rating, Maybe Move)] -> (Rating, Maybe Move)
+findLargestRating gs [x] = x
+findLargestRating gs@(PlayerOne, _, _, (rows, cols)) ((rating, mv):xs) 
+  | rating == (2 * rows * cols) = (rating, mv)
+  | rating > fst (findLargestRating gs xs) = (rating, mv)
+  | otherwise = findLargestRating gs xs
+findLargestRating gs@(PlayerTwo, _, _, (rows, cols)) ((rating, mv):xs) 
+  | rating == ((-2) * rows * cols) = (rating, mv)
+  | rating < fst (findLargestRating gs xs) = (rating, mv)
+  | otherwise = findLargestRating gs xs
 
-    in case checkWinner gs of
-      Nothing -> 
-        let possibleMvs = findLegalMoves gs
-            rating_mvs :: [(Int, Move)]
-            rating_mvs = zip (map (recur_depth depth) (mapMaybe (makeMove gs) possibleMvs)) possibleMvs
-            format_var = out_iter rating_mvs (head rating_mvs)
-            out_iter :: [(Int, Move)] -> (Int, Move) -> (Int, Move)
-            out_iter [] ans = ans 
-            out_iter (x:xs) ans 
-              | trn == PlayerOne && fst x == 2 * rows * cols = x
-              | trn == PlayerTwo && fst x == (-2) * rows * cols = x
-              | trn == PlayerOne && x > ans = out_iter xs x
-              | trn == PlayerTwo && x < ans = out_iter xs x
-              | otherwise = out_iter xs ans
-        in (fst format_var, Just (snd format_var))
-      Just (Winner PlayerOne) -> (rateGame gs, Nothing)
-      Just (Winner PlayerTwo) -> (rateGame gs, Nothing)
-      Just Draw -> (rateGame gs, Nothing)
+whoMightWin :: GameState -> Int -> (Rating, Maybe Move)
+whoMightWin gs 0 = (rateGame gs, Nothing)
+whoMightWin gs depth = 
+  case checkWinner gs of 
+    Nothing -> let moves = findLegalMoves gs
+                   gamestates = mapMaybe (makeMove gs) moves
+                   movesAndGames = zip moves gamestates
+                   minimax :: GameState -> Move -> Int -> (Rating, Maybe Move)
+                   minimax game move 0 = (rateGame game, Just move)
+                   minimax gs move depth = 
+                     case checkWinner gs of 
+                          Nothing -> findLargestRating gs (map (\game -> minimax game move (depth-1)) gamestates)
+                                     where gamestates = mapMaybe (makeMove gs) (findLegalMoves gs)
+                          _ -> (rateGame gs, Just move)
+               in findLargestRating gs (map (\(move, game) -> minimax game move (depth-1)) movesAndGames)
+    _ -> (rateGame gs, Nothing)
+

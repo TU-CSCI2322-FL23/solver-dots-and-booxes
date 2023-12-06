@@ -53,18 +53,18 @@ findLargestRating gs@(PlayerTwo, _, _, (rows, cols)) ((rating, mv):xs)
 
 whoMightWin :: GameState -> Int -> (Rating, Maybe Move)
 whoMightWin gs 0 = (rateGame gs, Nothing)
-whoMightWin gs@(_, _, _, (rows, cols)) depth = 
+whoMightWin gs depth = 
   case checkWinner gs of 
     Nothing -> let moves = findLegalMoves gs
                    gamestates = mapMaybe (makeMove gs) moves
                    movesAndGames = zip moves gamestates
                    minimax :: GameState -> Move -> Int -> (Rating, Maybe Move)
                    minimax game move 0 = (rateGame game, Just move)
-                   minimax gs@(_, _, _, (rows, cols)) move depth = 
+                   minimax gs move depth = 
                      case checkWinner gs of 
                           Nothing -> findLargestRating gs (map (\game -> minimax game move (depth-1)) gamestates)
                                      where gamestates = mapMaybe (makeMove gs) (findLegalMoves gs)
-                          _ -> (rateGame gs, Nothing)
+                          _ -> (rateGame gs, Just move)
                in findLargestRating gs (map (\(move, game) -> minimax game move (depth-1)) movesAndGames)
     _ -> (rateGame gs, Nothing)
 

@@ -39,16 +39,29 @@ rateGame gs@(_, _, bxs, (rows, cols)) = case checkWinner gs of
                               Just Draw -> 0 
 
 
-findBestRating :: GameState -> [(Rating, Maybe Move)] -> (Rating , Maybe Move) -> (Rating, Maybe Move)
-findBestRating gs [] best = best
-findBestRating gs@(PlayerOne, _, _, (rows, cols)) ((rating, mv):xs) (bestRat,bestMv)
-  | rating == (2 * rows * cols) = (rating, mv)
-  | rating > bestRat = findBestRating gs xs (rating,mv)
+findBestRating :: GameState -> [(Rating,Move)] -> (Rating,Move) -> (Rating,Maybe Move)
+findBestRating gs [] (rat,mv) = (rat, Just mv)
+findBestRating gs@(PlayerOne, _, _, (rows, cols)) ((rat,mv):xs) (bestRat,bestMv)
+  | rat == (2 * rows * cols) = (rat,Just mv)
+  | rat > bestRat = findBestRating gs xs (rat,mv)
   | otherwise = findBestRating gs xs (bestRat,bestMv)
-findBestRating gs@(PlayerTwo, _, _, (rows, cols)) ((rating, mv):xs) (bestRat,bestMv)
-  | rating == ((-2) * rows * cols) = (rating, mv)
-  | rating < bestRat = (rating, mv)
+findBestRating gs@(PlayerTwo, _, _, (rows, cols)) ((rat,mv):xs) (bestRat,bestMv)
+  | rat == ((-2) * rows * cols) = (rat, Just mv)
+  | rat < bestRat = findBestRating gs xs (rat,mv)
   | otherwise = findBestRating gs xs (bestRat,bestMv)
+
+getRatings :: [GameState] -> Int ->[Move] ->[Move]-> [Rating] -> [Rating]
+getRatings [] depth [] made ans = ans
+getRatings (x:xs) depth (y:ys) made ans = getRatings xs depth ys (y:made) (minimax x depth (ys++made):ans)
+
+minimax :: GameState -> Int -> [Move] -> Rating
+minimax game 0 mvs = rateGame game
+minimax gs depth mvs = 
+  case checkWinner gs of 
+      Nothing -> fst $ findBestRating gs rating_mvs (head rating_mvs)
+                  where gamestates = mapMaybe (makeMove gs) mvs
+                        rating_mvs = zip (getRatings gamestates (depth-1) mvs [] []) mvs
+      _ -> rateGame gs
 
 whoMightWin :: GameState -> Int -> (Rating, Maybe Move)
 whoMightWin gs 0 = (rateGame gs, Nothing)
@@ -56,17 +69,7 @@ whoMightWin gs depth =
   case checkWinner gs of 
     Nothing -> let moves = findLegalMoves gs
                    gamestates = mapMaybe (makeMove gs) moves
-                   movesAndGames = zip moves gamestates
-                   rating_mvs :: [(Rating, Maybe Move)]
-                   rating_mvs = map (\(move, game) -> minimax game move (depth-1) (delete move moves)) movesAndGames
-                   minimax :: GameState -> Move -> Int -> [Move] -> (Rating, Maybe Move)
-                   minimax game move 0 mvs = (rateGame game, Just move)
-                   minimax gs move depth mvs = 
-                     case checkWinner gs of 
-                          Nothing -> findBestRating gs rat_mvs (head rat_mvs)
-                                     where gamestates_mvs = zip (mapMaybe (makeMove gs) mvs) mvs
-                                           rat_mvs = map (\(game,mv) -> minimax game move (depth-1) (delete mv mvs)) gamestates_mvs
-                          _ -> (rateGame gs, Just move)
+                   rating_mvs = zip (getRatings gamestates (depth-1) moves [] []) moves
                in findBestRating gs rating_mvs (head rating_mvs)
     _ -> (rateGame gs, Nothing)
 
